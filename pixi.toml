@@ -1,10 +1,338 @@
-[workspace]
-authors = ["Fredrick Eisele <fred.eisele@vanderbilt.edu>"]
-channels = ["https://prefix.dev/meso-forge", "conda-forge"]
-name = "meso-forge-tools"
-platforms = ["linux-64"]
-version = "0.1.0"
+"$schema" = "https://pixi.sh/latest/schema/manifest/schema.json"
 
-[tasks]
+[workspace]
+name = "meso-forge"
+version = "0.1.0"
+description = "Multi-package build suite"
+authors = ["Fred Eisele <fred.eisele@vanderbilt.edu>"]
+channels = ["conda-forge", "https://prefix.dev/meso-forge"]
+
+platforms = [
+    # "osx-arm64",
+    "linux-64",
+    "linux-aarch64",
+    "wasi-wasm32",
+    # "win-64",
+    # "osx-64",
+]
+preview = ["pixi-build"]
 
 [dependencies]
+# Core build dependencies available on all platforms
+rattler-build = ">=0.40.0,<0.41"
+rattler-index = ">=0.22.4,<0.23"
+git = ">=2.49.0,<3.0"
+nushell = ">=0.105.1,<0.106"
+typer = ">=0.16.0,<0.17"
+pyyaml = ">=6.0.2,<7"
+glib = ">=2.84.0,<3.0"
+glib-tools = ">=2.84.0,<3.0"
+libzlib = ">=1.3.0,<2.0"
+
+# Platform-specific build dependencies
+[target.linux-64.dependencies]
+gcc_linux-64 = "*"
+gxx_linux-64 = "*"
+
+[target.linux-aarch64.dependencies]
+gcc_linux-aarch64 = "*"
+gxx_linux-aarch64 = "*"
+
+# Build all packages for current platform
+[tasks.build-all]
+cmd = ["nu", "scripts/build_all.nu"]
+cwd = "."
+
+# Build specific package types
+[tasks.build-noarch]
+cmd = ["nu", "scripts/build_noarch.nu"]
+cwd = "."
+
+[tasks.build-platform]
+cmd = ["nu", "scripts/build_platform.nu"]
+cwd = "."
+
+# Build for all platforms
+[tasks.build-all-platforms]
+cmd = ["nu", "scripts/build_platform.nu", "--all-platforms"]
+cwd = "."
+
+# Build for specific platform
+[tasks.build-for-platform]
+args = [
+   {arg = "platform", default = "linux-64" },
+]
+cmd = ["nu", "scripts/build_platform.nu", "--platform", "{{ platform }}"]
+cwd = "."
+
+# Individual package builds (examples)
+[tasks.build-pkg]
+args = [
+   {arg = "pkg", default = "asciidoctor-revealjs" },
+]
+cmd = ["nu", "scripts/build_single.nu", "--recipe", "pkgs/{{ pkg }}/recipe.yaml"]
+cwd = "."
+
+[tasks.build-dry]
+args = [
+   {arg = "pkg", default = "asciidoctor-revealjs" },
+]
+cmd = ["nu", "scripts/build_single.nu", "--recipe", "pkgs/{{ pkg }}/recipe.yaml", "--dry-run"]
+cwd = "."
+
+# Clean build artifacts
+[tasks.clean]
+cmd = "rm -rf output/"
+cwd = "."
+
+# Lint all recipes
+[tasks.lint-recipes]
+cmd = ["nu", "scripts/lint_recipes.nu"]
+cwd = "."
+
+[tasks.lint-recipes-fix]
+cmd = ["nu", "scripts/lint_recipes.nu", "--fix"]
+cwd = "."
+
+
+# Test built packages
+[tasks.test-packages]
+cmd = ["nu", "scripts/test_packages.nu"]
+cwd = "."
+
+[tasks.test-platform]
+cmd = ["nu", "scripts/test_packages.nu", "--platform"]
+cwd = "."
+
+[tasks.test-package]
+cmd = ["nu", "scripts/test_packages.nu", "--package"]
+cwd = "."
+
+
+# Platform-specific build environments
+[environments]
+# Default environment for the current platform
+default = { solve-group = "default" }
+
+# Cross-compilation environment (typically run on linux-64)
+[environments.cross-build]
+features = ["cross-compile"]
+solve-group = "cross-build"
+
+[environments.python-build]
+features = ["python-packages"]
+solve-group = "python-build"
+
+[environments.cpp-build]
+features = ["cpp-packages"]
+solve-group = "cpp-build"
+
+[environments.full-build]
+features = ["python-packages", "cpp-packages", "cross-compile"]
+solve-group = "full-build"
+
+
+# [tasks.analyze-recipes]
+# cmd = ["python", ".scripts/analyze_recipes.py"]
+
+# [tasks.fix-recipe-indentation]
+# cmd = ["python", ".scripts/fix_recipe_indentation.py"]
+
+# [tasks.generate-readmes]
+# cmd = ["python", ".scripts/generate_readmes.py"]
+
+[feature.cross-compile.dependencies]
+# Additional dependencies needed for cross-compilation
+# Most cross-compilation with rattler-build works without additional tools
+# qemu-user-static = "*"  # For emulation if needed
+
+# Example feature for specific package groups
+[feature.cpp-packages.dependencies]
+"cmake" = "*"
+"ninja" = "*"
+"pkg-config" = "*"
+
+[feature.python-packages.dependencies]
+"python" = ">=3.12,<4.0"
+"setuptools" = "*"
+"wheel" = "*"
+"pip" = "*"
+
+
+[tasks.publish-pd]
+args = [
+    {arg = "force", default = "" },
+    {arg = "channel", default = "meso-forge" },
+]
+cwd = "."
+# the upload expects the RATTLER_AUTH_FILE variable to be set
+cmd = [
+    "nu",
+    "scripts/publish.nu",
+    "--mode", "pd",
+    "--channel", "{{ channel }}",
+    "{{ '--force' if force != '' else '' }}",
+]
+
+[tasks.publish-s3]
+args = [
+    {arg = "force", default = "" },
+    {arg = "dry_run", default = "" },
+    {arg = "channel", default = "s3://pixi/meso-forge" },
+    {arg = "url", default = "https://minio.isis.vanderbilt.edu" },
+]
+cwd = "."
+# the upload expects the RATTLER_AUTH_FILE variable to be set
+cmd = [
+    "nu",
+    "scripts/publish.nu",
+    "--mode", "s3",
+    "--channel", "{{ channel }}",
+    "--url", "{{ url }}",
+    "{{ '--force' if force != '' else '' }}",
+    "{{ '--dry-run' if dry_run != '' else '' }}",
+]
+
+[tasks.publish-local]
+args = [
+    { arg = "force", default = "" },
+    { arg = "channel", default = "s3://pixi-local/meso-forge" },
+    { arg = "url", default = "http://127.0.0.1" },
+]
+# the upload expects the RATTLER_AUTH_FILE variable to be set
+depends-on = [
+  { task = "publish-s3", args = ["--channel", "{{ channel }}", "--url", "{{ url }}", "{{ '--force' if force != '' else '' }}"] } ]
+
+# [tasks.publish-status]
+# cmd = ["nu", "-c", "use .scripts/package_publish.nu *; publish-status"]
+
+# # Package retraction tasks
+# [tasks.retract-pd]
+# args = [
+#     { arg = "pkg", default = "_skeleton_python" },
+#     { arg = "channel", default = "meso-forge" },
+#     { arg = "versions", default = "1.0.0" },
+#     { arg = "tgt_platform", default = "linux-64" },
+#     { arg = "force", default = "" },
+# ]
+# # the retraction expects the RATTLER_AUTH_FILE variable to be set
+# cmd = [
+#     "nu",
+#     ".scripts/package_retract.nu",
+#     "{{ pkg }}",
+#     "--channel={{ channel }}",
+#     "--versions={{ versions }}",
+#     "--method=pd",
+#     "--target-platform={{ tgt_platform }}",
+#     "{{ '--force' if force != '' else '' }}",
+# ]
+
+# [tasks.retract-s3]
+# args = [
+#     { arg = "pkg", default = "_skeleton_python" },
+#     { arg = "channel", default = "s3://pixi/meso-forge" },
+#     { arg = "versions", default = "1.0.0" },
+#     { arg = "tgt_platform", default = "linux-64" },
+#     { arg = "url", default = "https://minio.isis.vanderbilt.edu" },
+#     { arg = "force", default = "" },
+# ]
+# # the retraction expects AWS credentials to be configured
+# cmd = [
+#     "nu",
+#     ".scripts/package_retract.nu",
+#     "{{ pkg }}",
+#     "--channel={{ channel }}",
+#     "--versions={{ versions }}",
+#     "--method=s3",
+#     "--url={{ url }}",
+#     "--target-platform={{ tgt_platform }}",
+#     "{{ '--force' if force != '' else '' }}",
+# ]
+
+# [tasks.retract-s3-local]
+# args = [
+#     { arg = "pkg", default = "_skeleton_python" },
+#     { arg = "channel", default = "s3://pixi-local/meso-forge" },
+#     { arg = "versions", default = "1.0.0" },
+#     { arg = "tgt_platform", default = "linux-64" },
+#     { arg = "force", default = "" },
+# ]
+# # the retraction expects AWS credentials to be configured
+# cmd = [
+#     "nu",
+#     ".scripts/package_retract.nu",
+#     "{{ pkg }}",
+#     "--channel={{ channel }}",
+#     "--versions={{ versions }}",
+#     "--method=s3",
+#     "--url=http://127.0.0.1",
+#     "--target-platform={{ tgt_platform }}",
+#     "{{ '--force' if force != '' else '' }}",
+# ]
+
+[tasks.index-s3]
+args = [
+    { arg = "url", default = "https://minio.isis.vanderbilt.edu" },
+    { arg = "channel", default = "s3://pixi/meso-forge" },
+]
+cmd = [
+    "rattler-index",
+    "s3",
+    "{{ channel }}",
+    "--region",
+    "auto",
+    "--endpoint-url",
+    "{{ url }}",
+    "--force-path-style",
+    "||",
+    "true",
+]
+
+[tasks.index-s3-local]
+depends-on = [
+    { task = "index-s3", args = [
+       "http://127.0.0.1",
+       "s3://pixi-local/meso-forge",
+    ] },
+]
+
+[feature.version-ctl.dependencies]
+python = "3.12.*"
+requests = ">=2.32.3,<3"
+pyyaml = ">=6.0.2,<7"
+"ruamel.yaml" = ">=0.17.0,<0.18"
+semver = ">=3.0.2,<4"
+py-rattler = ">=0.1.0"
+aiohttp = ">=3.9.0,<4"
+urllib3 = ">=2.5.0,<3.0"
+# Language servers for Zed editor
+pyright = ">=1.1.402,<1.2.0"
+ruff = ">=0.12.0,<=0.13.0"
+
+[feature.version-ctl.pypi-dependencies]
+pluginlib = ">=0.10.0,<0.11"
+
+# Version control tasks
+[feature.version-ctl.tasks.update-version]
+args = [{ arg = "package" }, { arg = "force", default = "false" }]
+cmd = "{{ 'python .scripts/version_ctl.py --update --package ' + package + (' --force' if force == 'true' else '') }}"
+
+[feature.version-ctl.tasks.update-version-force]
+args = [{ arg = "package" }]
+cmd = "{{ 'python .scripts/version_ctl.py --update --package ' + package + ' --force' }}"
+
+[feature.version-ctl.tasks.update-version-each]
+cmd = ["python", ".scripts/version_ctl.py", "--update", "--each"]
+
+
+[environments.update]
+features = ["version-ctl"]
+
+# # Zed editor tasks
+# [tasks.zed-env-default]
+# description = "Configure Zed to use default pixi environment"
+# cmd = ["nu", "-c", "open .zed/settings.json | upsert python.interpreter.path '.pixi/envs/default/bin/python' | upsert lsp.pyright.initialization_options.settings.python.pythonPath '.pixi/envs/default/bin/python' | upsert lsp.pyright.initialization_options.settings.python.defaultInterpreterPath '.pixi/envs/default/bin/python' | upsert env.PIXI_ENVIRONMENT 'default' | save .zed/settings.json"]
+
+# [tasks.zed-env-update]
+# description = "Configure Zed to use update pixi environment (with Python tools)"
+# cmd = ["nu", "-c", "open .zed/settings.json | upsert python.interpreter.path '.pixi/envs/update/bin/python' | upsert lsp.pyright.initialization_options.settings.python.pythonPath '.pixi/envs/update/bin/python' | upsert lsp.pyright.initialization_options.settings.python.defaultInterpreterPath '.pixi/envs/update/bin/python' | upsert env.PIXI_ENVIRONMENT 'update' | save .zed/settings.json"]

@@ -1,0 +1,125 @@
+= Ruby Gem Skeleton for meso-forge
+
+This skeleton provides a template for creating conda packages from Ruby gems, based on patterns proven to work in this project.
+
+== Quick Start
+
+1. Copy `recipe.yaml` and rename the directory to match your gem name
+2. Update the following in `recipe.yaml`:
+
+   - `gemname` → your gem's actual name
+   - `version` → the gem version
+   - `sha256` → SHA256 hash of the gem file
+   - Dependencies in `requirements` section
+   - URLs and metadata in `about` section
+3. CLI tools are automatically created if the gem provides them
+4. Test with: `pixi run build your-gem-name --skip-existing=none`
+
+== Basic Pattern
+
+Most Ruby packages in this project follow this pattern:
+
+[source,yaml]
+----
+build:
+  number: 0
+  noarch: generic  # For pure Ruby gems
+  script:
+    - gem install -N -l -V --norc --ignore-dependencies -n $PREFIX/bin gemname-${{ version }}.gem
+    - gem unpack gemname-${{ version }}.gem
+    - cp gemname-${{ version }}/LICENSE* LICENSE || echo "No LICENSE file found"
+
+requirements:
+  host:
+    - ruby
+  run:
+    - ${{ pin_compatible('ruby', upper_bound='x.x') }}
+    # Add gem dependencies with rb- prefix
+----
+
+== Examples from this project
+
+=== Pure Ruby gem (asciidoctor)
+- Uses `noarch: generic`
+- Simple gem install with `-N -l -V --norc --ignore-dependencies -n $PREFIX/bin`
+- Runtime dependencies use `${{ pin_compatible('ruby', upper_bound='x.x') }}`
+
+=== Gem with dependencies (asciidoctor-pdf)
+- Same build pattern
+- Multiple `rb-*` dependencies in run section
+- Version constraints like `>=2.0,<3.0`
+
+=== Gem with CLI tools (asciidoctor-revealjs)
+- CLI tools are automatically created by `gem install -n $PREFIX/bin`
+- No custom wrapper scripts needed
+- Tests include version check: `gemname --version`
+
+== CLI Tool Support
+
+If your gem provides command-line tools, they are automatically created by the standard installation:
+
+```yaml
+script:
+  - gem install -N -l -V --norc --ignore-dependencies -n $PREFIX/bin gemname-${{ version }}.gem
+```
+
+The `-n $PREFIX/bin` flag tells gem install to create executable scripts in `$PREFIX/bin` automatically. No custom wrapper scripts are needed.
+
+== Gem Dependencies
+
+Use `rb-` prefix for Ruby gem dependencies:
+
+[source,yaml]
+----
+requirements:
+  run:
+    - ${{ pin_compatible('ruby', upper_bound='x.x') }}
+    - rb-activesupport >=6.0,<8.0
+    - rb-nokogiri >=1.10,<2.0
+    - asciidoctor >=1.5.0  # Other packages in this project
+----
+
+== Testing
+
+Basic test pattern:
+[source,yaml]
+----
+tests:
+  - script:
+      - ruby -r gemname -e 'exit 0'
+      - gemname --version  # if provides CLI
+----
+
+== Getting SHA256 Hash
+
+[source,bash]
+----
+curl -L https://rubygems.org/downloads/gemname-1.0.0.gem | sha256sum
+----
+
+== Common Issues
+
+=== Build appears to succeed but package doesn't work
+- Check that runtime dependencies are correct
+- Verify gem can be required: `ruby -r gemname -e 'exit 0'`
+
+=== CLI tool not found
+- Verify the gem actually provides CLI tools (check gem documentation)
+- Ensure `gem install` uses the `-n $PREFIX/bin` flag
+
+=== Dependency conflicts
+- Use appropriate version constraints
+- Check conda-forge for existing `rb-*` packages
+
+== Files in this skeleton
+
+- `recipe.yaml` - Main recipe template
+- `recipe-simple.yaml` - Simplified recipe template
+- `README.adoc` - This documentation
+
+== Resources
+
+- Check existing Ruby packages in `pkgs-forged/` for real examples
+- Gem info: `gem specification gemname`
+- Dependencies: `gem dependency gemname`
+- RubyGems.org for gem downloads and metadata

@@ -1,0 +1,112 @@
+{
+  "languages": {
+    "Python": {
+      "format_on_save": {
+        "language_server": {
+          "name": "ruff"
+        }
+      },
+      "formatter": {
+        "language_server": {
+          "name": "ruff"
+        }
+      },
+      "language_servers": [
+        "pyright",
+        "ruff"
+      ]
+    }
+  },
+  "lsp": {
+    "pyright": {
+      "binary": {
+        "path": ".pixi/envs/update/bin/pyright-langserver",
+        "arguments": [
+          "--stdio"
+        ]
+      },
+      "initialization_options": {
+        "settings": {
+          "python": {
+            "pythonPath": ".pixi/envs/update/bin/python",
+            "venvPath": ".pixi/envs",
+            "defaultInterpreterPath": ".pixi/envs/update/bin/python",
+            "analysis": {
+              "extraPaths": [
+                ".pixi/envs/update/lib/python3.12/site-packages"
+              ],
+              "autoSearchPaths": true,
+              "useLibraryCodeForTypes": true
+            }
+          }
+        }
+      }
+    },
+    "ruff": {
+      "binary": {
+        "path": ".pixi/envs/update/bin/ruff",
+        "arguments": [
+          "server"
+        ]
+      },
+      "initialization_options": {
+        "settings": {
+          "interpreter": [
+            ".pixi/envs/update/bin/python"
+          ],
+          "configuration": {
+            "lineLength": 88
+          }
+        }
+      }
+    }
+  },
+  "terminal": {
+    "button": true,
+    "shell": {
+      "with_arguments": {
+        "program": "bash",
+        "args": [
+          "-c",
+          "cd /var/home/phreed/Projects/meso-forge && pixi shell -e update"
+        ]
+      }
+    }
+  },
+  "python": {
+    "interpreter": {
+      "path": ".pixi/envs/update/bin/python"
+    }
+  },
+  "env": {
+    "PIXI_PROJECT_ROOT": ".",
+    "PIXI_ENVIRONMENT": "update",
+    "PYTHONPATH": ".pixi/envs/update/lib/python3.12/site-packages"
+  },
+  "project_panel": {
+    "button": true,
+    "default_width": 240,
+    "dock": "left",
+    "file_icons": true,
+    "folder_icons": true,
+    "git_status": true,
+    "indent_size": 20,
+    "auto_reveal_entries": true
+  },
+  "formatter": {
+    "language_server": {
+      "name": "ruff"
+    }
+  },
+  "code_actions_on_format": {
+    "source.organizeImports.ruff": true,
+    "source.fixAll.ruff": true
+  },
+  "assistant": {
+    "version": "2",
+    "default_model": {
+      "provider": "anthropic",
+      "model": "claude-3-5-sonnet-20241022"
+    }
+  }
+}

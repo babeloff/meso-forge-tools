@@ -1,0 +1,112 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.1.4"
+
+package:
+  name: meso-forge-tooling
+  version: ${{ version }}
+
+source:
+  path: ../../
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    interpreter: bash
+    content: |
+      # Create the tooling directory structure
+      mkdir -p $PREFIX/share/meso-forge-tooling
+
+      # Copy all tooling components
+      cp -r scripts $PREFIX/share/meso-forge-tooling/
+      cp -r pkg-skeletons $PREFIX/share/meso-forge-tooling/
+
+      # Copy configuration files
+      cp configs/pixi.toml $PREFIX/share/meso-forge-tooling/
+      cp configs/conda-forge.yml $PREFIX/share/meso-forge-tooling/
+      cp configs/auth.json.example $PREFIX/share/meso-forge-tooling/
+
+      # Copy documentation
+      cp README.adoc $PREFIX/share/meso-forge-tooling/
+      cp LICENSE.txt $PREFIX/share/meso-forge-tooling/
+
+      # Create wrapper script for meso-forge command
+      mkdir -p $PREFIX/bin
+      chmod +x $PREFIX/bin/meso-forge
+      cp -r scripts/meso-forge  $PREFIX/bin/meso-forge
+
+      # Create environment activation script
+      mkdir -p $PREFIX/etc/conda/activate.d
+      cat > $PREFIX/etc/conda/activate.d/meso-forge-tooling.sh << 'EOF'
+      export MESO_FORGE_TOOLING_ROOT="$CONDA_PREFIX/share/meso-forge-tooling"
+      export MESO_FORGE_VERSION="0.1.4"
+      EOF
+
+requirements:
+  host:
+    - python >=3.9
+  run:
+    - nushell >=0.105.1
+    - rattler-build >=0.40.0
+    - rattler-index >=0.22.4
+    - git >=2.49.0
+    - python >=3.9
+    - pyyaml >=6.0.2
+    - typer >=0.16.0
+    - requests >=2.32.3
+    - ruamel.yaml >=0.17.0
+    - semver >=3.0.2
+
+tests:
+  - script:
+      interpreter: bash
+      content: |
+        # Test that the meso-forge command is available
+        meso-forge help
+
+        # Test that tooling files are accessible
+        test -d "$CONDA_PREFIX/share/meso-forge-tooling/scripts"
+        test -d "$CONDA_PREFIX/share/meso-forge-tooling/.scripts"
+        test -d "$CONDA_PREFIX/share/meso-forge-tooling/pkg-skeletons"
+
+        # Test that required files exist
+        test -f "$CONDA_PREFIX/share/meso-forge-tooling/pixi.toml"
+        test -f "$CONDA_PREFIX/share/meso-forge-tooling/README.adoc"
+
+        # Test that environment variables are set
+        test -n "$MESO_FORGE_TOOLING_ROOT"
+        test -n "$MESO_FORGE_VERSION"
+
+        echo "All meso-forge-tooling tests passed!"
+
+about:
+  homepage: https://github.com/phreed/meso-forge
+  repository: https://github.com/phreed/meso-forge
+  documentation: https://github.com/phreed/meso-forge/blob/main/README.adoc
+  license: MIT
+  license_file: LICENSE.txt
+  summary: Multi-package build suite for conda packages
+  description: |
+    meso-forge-tooling provides the complete build infrastructure for creating
+    and maintaining conda packages across multiple domains. It includes:
+
+    - Build scripts and utilities (Nu shell based)
+    - Package templates and skeletons for multiple languages
+    - Publishing infrastructure for conda channels
+    - Testing and validation tools
+    - Version management utilities
+    - Linting and quality assurance tools
+
+    This tooling package is designed to be used by domain-specific package
+    repositories, providing a consistent build experience across different
+    package categories while allowing for domain-specific customization.
+
+    The tooling supports building packages for multiple languages including
+    Python, Rust, C++, Go, JavaScript, R, Ruby, and JVM-based languages.
+
+extra:
+  recipe-maintainers:
+    - phreed

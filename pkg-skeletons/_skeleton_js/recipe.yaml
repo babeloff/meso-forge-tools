@@ -1,0 +1,234 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+# JavaScript/Node.js Package Recipe Template
+# =========================================
+#
+# This template provides best practices for packaging JavaScript/Node.js applications in conda.
+# Based on patterns from real-world JavaScript packaging in the meso-forge project.
+#
+# NODE.JS PACKAGING PATTERNS:
+# - Use npm install -g for CLI tools (most common)
+# - Use noarch: generic for pure JavaScript packages
+# - Handle license collection with npm_licenses.nu script
+# - Test functionality rather than just imports
+#
+# BUILD CONSIDERATIONS:
+# - npm install handles dependency resolution and installation
+# - Use --prefix $PREFIX to install to conda environment
+# - Handle problematic postinstall scripts that may fail in conda builds
+# - For complex builds, may need to build from GitHub source
+#
+# NATIVE MODULES:
+# - Remove noarch: generic for packages with native Node.js modules
+# - Add python, make, and C++ compiler to build requirements
+# - Native compilation happens automatically during npm install
+#
+# TESTING BEST PRACTICES:
+# - Test that CLI tools can execute and show version
+# - Test module imports for library packages
+# - Focus on basic functionality rather than complex scenarios
+# - Avoid tests that require network access or external services
+
+context:
+  # TODO: Update these variables for your package
+  name: example-js-package
+  version: "1.0.0"
+  # Optional: GitHub info for source URL (if building from GitHub)
+  github_org: example-org
+  github_repo: example-repo
+  # Package type: "cli" for command-line tools, "library" for modules
+  package_type: cli
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  # TODO: Choose your source type and update accordingly
+
+  # Option 1: NPM registry (recommended for most packages)
+  - url: https://registry.npmjs.org/${{ name }}/-/${{ name }}-${{ version }}.tgz
+    sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+    file_name: ${{ name }}-${{ version }}.tgz
+
+  # Option 2: GitHub source (for complex builds or when npm tarball insufficient)
+  # - url: https://github.com/${{ github_org }}/${{ github_repo }}/archive/refs/tags/v${{ version }}.tar.gz
+  #   sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+  #   target_directory: ${{ name }}-src
+
+  # License collection script (always include)
+  - path: ../../.scripts/npm_licenses.nu
+    file_name: npm_licenses.nu
+    target_directory: scripts
+
+build:
+  # Use noarch: generic for pure JavaScript packages
+  # Remove this line for packages with native Node.js modules
+  noarch: generic
+  script:
+    interpreter: nu
+    content: |
+      echo $"Building ($env.PKG_NAME) version ($env.PKG_VERSION)..."
+
+      # BUILD PATTERN 1: Simple npm package installation (recommended for most cases)
+      npm install -g ./${{ name }}-${{ version }}.tgz --prefix $env.PREFIX
+
+      # BUILD PATTERN 2: GitHub source build (uncomment if using GitHub source)
+      # cd ${{ name }}-src
+      #
+      # # Fix problematic postinstall scripts if needed
+      # # Some packages have postinstall scripts that fail in conda builds
+      # # sed -i 's/"postinstall": "problematic-script"/"postinstall": "echo Skipping postinstall"/' package.json
+      #
+      # # Install dependencies
+      # npm ci                    # For package-lock.json (recommended)
+      # # npm install             # For packages without lockfile
+      #
+      # # Build the package if needed
+      # npm run build             # Standard build script
+      # # npm run build:prod      # Production build
+      # # npm run compile         # TypeScript compilation
+      #
+      # # Install globally
+      # npm install -g . --prefix $env.PREFIX
+
+      # BUILD PATTERN 3: Complex application with manual file copying
+      # Use when npm install doesn't handle all required files properly
+      # cd ${{ name }}-src
+      # npm ci
+      # npm run build
+      #
+      # # Copy application files
+      # let app_dir = ($env.PREFIX | path join "lib" "node_modules" ${{ name }})
+      # mkdir $app_dir
+      # cp -r build/* $app_dir
+      # cp package.json $app_dir
+      #
+      # # Create CLI wrapper if needed
+      # let bin_dir = ($env.PREFIX | path join "bin")
+      # mkdir $bin_dir
+      # let wrapper_content = $"#!/bin/bash\nexec node \"($app_dir)/main.js\" \"$@\""
+      # $wrapper_content | save ($bin_dir | path join ${{ name }})
+      # chmod +x ($bin_dir | path join ${{ name }})
+
+      # Generate license summary (always include)
+      source scripts/npm_licenses.nu
+      main | save license_summary.txt
+
+  number: 0
+
+requirements:
+  build:
+    - nushell
+    - nodejs
+    - npm
+    # TODO: Add additional build dependencies if needed
+    # - yarn                           # Alternative package manager
+    # - python                         # Required for packages with native modules
+    # - make                           # Required for packages with native modules
+    # - ${{ compiler('cxx') }}         # C++ compiler for packages with native modules
+    # - pkg-config                     # For finding system libraries
+    # - typescript                     # For TypeScript packages
+    # - webpack                        # For complex bundling
+    # - webpack-cli                    # Webpack CLI tools
+
+  host:
+    - nodejs
+    # TODO: Add host dependencies for packages with native modules
+    # - openssl                        # For packages that link to OpenSSL
+    # - sqlite                         # For packages that use SQLite
+    # - libffi                         # For packages that use FFI
+
+  run:
+    - nodejs
+    # TODO: Add runtime dependencies if needed
+    # - python                         # If package uses Python scripts at runtime
+    # - git                           # If package needs git at runtime
+
+tests:
+  # Test 1: Verify package contents are included
+  - package_contents:
+      files:
+        # For CLI packages
+        - ${{ "Library/" if win }}bin/${{ name }}${{ ".cmd" if win }}
+        # Node.js package files
+        - ${{ "Library/" if win }}lib/node_modules/${{ name }}/package.json
+
+        # TODO: Add other expected files
+        # - ${{ "Library/" if win }}lib/node_modules/${{ name }}/index.js
+        # - etc/config.json
+
+  # Test 2: Functional tests
+  - requirements:
+      build:
+        - nushell
+    script:
+      interpreter: nu
+      content:
+        # TODO: Update these tests based on your package type
+
+        # For CLI packages
+        - ^${{ name }} --version
+        - ^${{ name }} --help
+
+        # For library packages (uncomment and modify as needed)
+        # - ^node -e "const pkg = require('${{ name }}'); console.log('Import successful')"
+        # - ^node -e "const pkg = require('${{ name }}'); console.log(typeof pkg)"
+
+        # TODO: Add functional tests that verify core functionality
+        # Keep tests simple and avoid external dependencies
+        # - ^${{ name }} validate --dry-run
+        # - ^echo "test input" | ^${{ name }} --stdin
+        # - ^${{ name }} --check-config /dev/null
+
+about:
+  # TODO: Update all metadata fields
+  homepage: https://github.com/${{ github_org }}/${{ github_repo }}
+  repository: https://github.com/${{ github_org }}/${{ github_repo }}
+  documentation: https://github.com/${{ github_org }}/${{ github_repo }}/blob/main/README.md
+  summary: Brief one-line description of the JavaScript package
+  description: |
+    A longer, multi-line description of what this JavaScript package does.
+    Include key features, use cases, and any important notes.
+
+    Features:
+    - Feature 1: Cross-platform compatibility
+    - Feature 2: Modern JavaScript/TypeScript support
+    - Feature 3: Easy integration
+
+    This package provides a ${{ package_type }} tool that can be used for...
+
+  # TODO: Update license type (common: MIT, Apache-2.0, ISC, GPL-3.0)
+  license: MIT
+  license_file:
+    - LICENSE
+    # Include collected dependency licenses
+    - license_summary.txt
+
+extra:
+  recipe-maintainers:
+    # TODO: Add your GitHub username
+    - github-username
+
+  version:
+    # TODO: Choose appropriate version detection method
+
+    # Option 1: GitHub tags (for packages built from GitHub)
+    github-tags:
+      - ^v(\d+\.\d+\.\d+)$
+
+    # Option 2: NPM releases (for packages published to npm)
+    # npm:
+    #   - ${{ name }}
+
+  # Common JavaScript/Node.js packaging notes:
+  # - Use noarch: generic for pure JavaScript packages
+  # - Remove noarch for packages with native Node.js modules
+  # - Include npm_licenses.nu script for license compliance
+  # - Test CLI functionality with --version and --help
+  # - For libraries, test require() or import statements
+  # - Handle problematic postinstall scripts in complex builds
+  # - Native modules require python, make, and C++ compiler in build deps
+  # - Focus on basic functionality tests rather than complex scenarios
+  # - Use npm install -g with --prefix for consistent installation

@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "1.0.0"
+
+package:
+  name: gemname
+  version: ${{ version }}
+
+source:
+  - url: https://rubygems.org/downloads/gemname-${{ version }}.gem
+    sha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - gem install -N -l -V --norc --ignore-dependencies -n $PREFIX/bin gemname-${{ version }}.gem
+    - gem unpack gemname-${{ version }}.gem
+    - cp gemname-${{ version }}/LICENSE* LICENSE || echo "No LICENSE file found"
+
+requirements:
+  host:
+    - ruby
+  run:
+    - ${{ pin_compatible('ruby', upper_bound='x.x') }}
+    # Add runtime dependencies here with rb- prefix for Ruby gems:
+    # - rb-activesupport >=6.0,<8.0
+
+tests:
+  - script:
+      - ruby -r gemname -e 'exit 0'
+      # - gemname --version  # if gem provides CLI tools (automatically created by gem install -n)
+
+about:
+  homepage: https://github.com/username/gemname
+  repository: https://github.com/username/gemname
+  license: MIT
+  license_file: LICENSE
+  summary: Brief description of the gem
+  description: |
+    Longer description of what the gem does.
+
+extra:
+  recipe-maintainers:
+    - maintainer1

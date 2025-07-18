@@ -1,0 +1,33 @@
+name: Build Packages
+
+on:
+  push:
+    branches:
+      - 'pkgs/**'
+  pull_request:
+    branches:
+      - 'pkgs/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        branch: [tactical, system-tools, development-tools, documentation-tools, cloud-infrastructure, communication-media, data-processing]
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: pkgs/${{ matrix.branch }}
+
+    - name: Install pixi
+      uses: prefix-dev/setup-pixi@v0.8.1
+
+    - name: Install meso-forge-tooling
+      run: pixi global install meso-forge-tooling -c https://prefix.dev/meso-forge
+
+    - name: Build packages
+      run: pixi run build-all
+
+    - name: Test packages
+      run: pixi run test
