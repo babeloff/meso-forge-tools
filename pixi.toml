@@ -11,7 +11,7 @@ platforms = [
     # "osx-arm64",
     "linux-64",
     "linux-aarch64",
-    "wasi-wasm32",
+    # "wasi-wasm32",
     # "win-64",
     # "osx-64",
 ]
@@ -19,7 +19,7 @@ preview = ["pixi-build"]
 
 [dependencies]
 # Core build dependencies available on all platforms
-rattler-build = ">=0.40.0,<0.41"
+rattler-build = ">=0.44.0,<0.50"
 rattler-index = ">=0.22.4,<0.23"
 git = ">=2.49.0,<3.0"
 nushell = ">=0.105.1,<0.106"
@@ -197,7 +197,7 @@ cmd = [
 args = [
     { arg = "force", default = "" },
     { arg = "channel", default = "s3://pixi-local/meso-forge" },
-    { arg = "url", default = "http://127.0.0.1" },
+    { arg = "url", default = "http://localhost" },
 ]
 # the upload expects the RATTLER_AUTH_FILE variable to be set
 depends-on = [
@@ -265,7 +265,7 @@ depends-on = [
 #     "--channel={{ channel }}",
 #     "--versions={{ versions }}",
 #     "--method=s3",
-#     "--url=http://127.0.0.1",
+#     "--url=http://localhost",
 #     "--target-platform={{ tgt_platform }}",
 #     "{{ '--force' if force != '' else '' }}",
 # ]
@@ -291,7 +291,7 @@ cmd = [
 [tasks.index-s3-local]
 depends-on = [
     { task = "index-s3", args = [
-       "http://127.0.0.1",
+       "http://localhost",
        "s3://pixi-local/meso-forge",
     ] },
 ]
