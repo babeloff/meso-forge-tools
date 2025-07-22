@@ -196,12 +196,18 @@ cmd = [
 [tasks.publish-local]
 args = [
     { arg = "force", default = "" },
-    { arg = "channel", default = "s3://pixi-local/meso-forge" },
-    { arg = "url", default = "http://localhost" },
+    { arg = "channel", default = "s3://meso-forge" },
+    { arg = "url", default = "http://localhost:19000" },
 ]
 # the upload expects the RATTLER_AUTH_FILE variable to be set
-depends-on = [
-  { task = "publish-s3", args = ["--channel", "{{ channel }}", "--url", "{{ url }}", "{{ '--force' if force != '' else '' }}"] } ]
+cmd = [
+    "nu",
+    "scripts/publish.nu",
+    "--mode", "s3",
+    "--channel", "{{ channel }}",
+    "--url", "{{ url }}",
+    "{{ '--force' if force != '' else '' }}",
+]
 
 # [tasks.publish-status]
 # cmd = ["nu", "-c", "use .scripts/package_publish.nu *; publish-status"]
@@ -288,12 +294,9 @@ cmd = [
     "true",
 ]
 
-[tasks.index-s3-local]
+[tasks.index-local]
 depends-on = [
-    { task = "index-s3", args = [
-       "http://localhost",
-       "s3://pixi-local/meso-forge",
-    ] },
+    { task = "index-s3", args = ["http://localhost:19000", "s3://meso-forge"] }
 ]
 
 [feature.version-ctl.dependencies]
