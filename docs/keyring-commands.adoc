@@ -1,0 +1,227 @@
+= MinIO Keyring Integration Commands
+
+This document describes the keyring integration commands for managing MinIO credentials securely using GNOME keyring.
+
+== Keyring Key Format
+
+The keyring entries use this format:
+
+* *Service*: `mc`
+* *Alias*: `{alias_name}` (e.g., `local-minio`, `production`)
+
+The credentials are stored as JSON containing both the account (username) and secret key. This creates a simple two-part key that links directly to `mc alias list` entries.
+
+== Basic Commands
+
+=== Retrieve Password for Specific Alias and Account
+
+[source,bash]
+----
+# Get the MinIO credentials for 'local-minio' alias
+secret-tool lookup service mc alias local-minio
+
+# Get credentials for production setup
+secret-tool lookup service mc alias production
+----
+
+=== Store Password for New Alias and Account
+
+[source,bash]
+----
+# Store credentials for a new alias (JSON format with account and secret)
+echo '{"account":"admin","secret":"your_secret_password"}' | secret-tool store \
+    --label="MinIO Credentials for production:admin" \
+    service mc alias production
+----
+
+=== List All MinIO Keyring Entries
+
+[source,bash]
+----
+# Find all MinIO-related keyring entries
+secret-tool search service mc
+----
+
+=== Remove Specific Entry
+
+[source,bash]
+----
+# Remove specific MinIO credentials
+secret-tool clear service mc alias production
+----
+
+== Management Script Commands
+
+=== List All Aliases and Keyring Status
+
+[source,bash]
+----
+nu scripts/manage_minio_credentials.nu --list
+----
+
+=== Add New Alias with Keyring Integration
+
+[source,bash]
+----
+# Add production MinIO
+nu scripts/manage_minio_credentials.nu --add \
+    --alias production \
+    --url https://minio.example.com \
+    --access-key admin \
+    --secret-key prod_secret_key
+
+# Add staging MinIO
+nu scripts/manage_minio_credentials.nu --add \
+    --alias staging \
+    --url https://staging.minio.example.com \
+    --access-key staging_user \
+    --secret-key staging_password
+----
+
+=== Test Alias Connection
+
+[source,bash]
+----
+nu scripts/manage_minio_credentials.nu --test --alias local-minio
+nu scripts/manage_minio_credentials.nu --test --alias production
+----
+
+=== Remove Alias and Keyring Credentials
+
+[source,bash]
+----
+nu scripts/manage_minio_credentials.nu --remove --alias production
+----
+
+== Initialization Commands
+
+=== Initialize Local MinIO
+
+[source,bash]
+----
+# Initialize with default settings (uses keyring automatically)
+pixi run init-minio
+
+# Initialize with custom settings
+pixi run init-minio-custom \
+    --url http://localhost:19000 \
+    --access_key minioadmin \
+    --secret_key miniosecurepassword123 \
+    --bucket meso-forge
+----
+
+== Example Keyring Entries
+
+After setting up various MinIO instances, your keyring might contain:
+
+[source,bash]
+----
+$ secret-tool search service mc
+[/45] MinIO Credentials for local-minio:minioadmin
+[/46] MinIO Credentials for production:admin
+[/47] MinIO Credentials for staging:staging_user
+----
+
+== Integration with mc alias list
+
+The keyring entries directly correspond to `mc alias list` output:
+
+[source,bash]
+----
+$ mc alias list
+local-minio
+  URL       : http://localhost:19000
+  AccessKey : minioadmin          # ← Retrieved from keyring JSON
+  SecretKey : <from keyring>      # ← Retrieved from keyring JSON
+
+production
+  URL       : https://minio.example.com
+  AccessKey : admin               # ← Retrieved from keyring JSON
+  SecretKey : <from keyring>      # ← Retrieved from keyring JSON
+----
+
+The keyring stores credentials as JSON:
+[source,json]
+----
+{
+  "account": "minioadmin",
+  "secret": "miniosecurepassword123"
+}
+----
+
+== Security Benefits
+
+. *No Plaintext Secrets*: Credentials stored securely in GNOME keyring as JSON
+. *Organized by Alias*: Each alias has its own keyring entry
+. *Easy Management*: Simple alias-based lookup for credentials
+. *Complete Credentials*: Both access key and secret stored together
+. *Automatic Retrieval*: Scripts automatically use keyring when available
+
+== Troubleshooting
+
+=== Check if secret-tool is available
+
+[source,bash]
+----
+which secret-tool
+# Should return: /usr/bin/secret-tool or /usr/sbin/secret-tool
+----
+
+=== Verify keyring entry exists
+
+[source,bash]
+----
+secret-tool lookup service mc alias local-minio
+# Should return JSON with account and secret, or empty if not found
+----
+
+=== Manual cleanup of orphaned entries
+
+[source,bash]
+----
+# List all mc entries
+secret-tool search service mc
+
+# Remove specific orphaned entry
+secret-tool clear service mc alias old-alias
+----
+
+=== Re-initialize if keyring is corrupted
+
+[source,bash]
+----
+# Remove all mc keyring entries
+secret-tool search service mc | grep "alias =" | sed 's/.*alias = //' | while read alias; do
+    secret-tool clear service mc alias "$alias"
+done
+
+# Then re-run initialization
+pixi run init-minio
+----
+
+== Command Reference Summary
+
+[cols="1,3"]
+|===
+|Operation |Command
+
+|*Retrieve*
+|`secret-tool lookup service mc alias ALIAS`
+
+|*Store*
+|`echo '{"account":"ACCOUNT","secret":"SECRET"}' \| secret-tool store --label="MinIO Credentials for ALIAS:ACCOUNT" service mc alias ALIAS`
+
+|*List All*
+|`secret-tool search service mc`
+
+|*Remove*
+|`secret-tool clear service mc alias ALIAS`
+
+|*Manage*
+|`nu scripts/manage_minio_credentials.nu --list`
+
+|*Initialize*
+|`pixi run init-minio`
+|===
+
+This system provides secure, organized credential management that integrates seamlessly with MinIO client operations while maintaining clear links between aliases and their corresponding usernames.

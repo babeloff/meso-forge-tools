@@ -23,21 +23,29 @@ const DEFAULT_BUCKET_NAME = "meso-forge"
 const DEFAULT_CHANNEL_NAME = "s3://meso-forge"
 const DEFAULT_MINIO_ALIAS = "local-minio"
 
-# Get credentials from keyring if available
-def get_keyring_credentials [account: string] {
+# Get credentials from keyring using alias
+def get_keyring_credentials [alias: string] {
     if (which secret-tool | is-not-empty) {
-        let result = (^secret-tool lookup service mc account $account | complete)
+        let result = (^secret-tool lookup service mc alias $alias | complete)
         if $result.exit_code == 0 and ($result.stdout | str length) > 0 {
-            return ($result.stdout | str trim)
+            let credentials_json = ($result.stdout | str trim)
+            try {
+                let parsed = ($credentials_json | from json)
+                return {account: $parsed.account, secret: $parsed.secret}
+            } catch {
+                # Fallback for old format - treat as plain secret
+                return {account: null, secret: $credentials_json}
+            }
         }
     }
     return null
 }
 
-# Store credentials in keyring
-def store_keyring_credentials [account: string, password: string] {
+# Store credentials in keyring using alias and account
+def store_keyring_credentials [alias: string, account: string, password: string] {
     if (which secret-tool | is-not-empty) {
-        let result = (^secret-tool store --label="MinIO Credentials" service mc account $account | complete)
+        let credentials = {account: $account, secret: $password} | to json
+        let result = (echo $credentials | ^secret-tool store --label=$"MinIO Credentials for ($alias):($account)" service mc alias $alias | complete)
         return ($result.exit_code == 0)
     }
     return false
@@ -70,20 +78,21 @@ def main [
         return
     }
 
-    # Try to get credentials from keyring first
-    let keyring_secret = (get_keyring_credentials $access_key)
-    let actual_secret_key = if ($keyring_secret != null) { $keyring_secret } else { $secret_key }
+    # Try to get credentials from keyring first using alias only
+    let keyring_creds = (get_keyring_credentials $alias)
+    let actual_secret_key = if ($keyring_creds != null) { $keyring_creds.secret } else { $secret_key }
+    let actual_access_key = if ($keyring_creds != null and $keyring_creds.account != null) { $keyring_creds.account } else { $access_key }
 
     # Store credentials in keyring if not already there
-    if ($keyring_secret == null) {
-        print $"ℹ️ Storing credentials for ($access_key) in keyring..."
-        if (store_keyring_credentials $access_key $actual_secret_key) {
+    if ($keyring_creds == null) {
+        print $"ℹ️ Storing credentials for alias '($alias)' account '($access_key)' in keyring..."
+        if (store_keyring_credentials $alias $access_key $actual_secret_key) {
             print "✅ Credentials stored in GNOME keyring"
         } else {
             print "⚠️ Failed to store credentials in keyring, using provided values"
         }
     } else {
-        print $"ℹ️ Using credentials from keyring for ($access_key)"
+        print $"ℹ️ Using credentials from keyring for alias '($alias)' account '($access_key)'"
     }
 
     # Get configuration from environment or use parameters
@@ -180,9 +189,10 @@ def check_minio_server [url: string] {
 def configure_mc_alias [config: record] {
     print $"ℹ️ Configuring MinIO client alias '($config.alias)'..."
 
-    # Get secret from keyring if available
-    let keyring_secret = (get_keyring_credentials $config.access_key)
-    let actual_secret = if ($keyring_secret != null) { $keyring_secret } else { $config.secret_key }
+    # Get credentials from keyring if available using alias only
+    let keyring_creds = (get_keyring_credentials $config.alias)
+    let actual_secret = if ($keyring_creds != null) { $keyring_creds.secret } else { $config.secret_key }
+    let actual_access_key = if ($keyring_creds != null and $keyring_creds.account != null) { $keyring_creds.account } else { $config.access_key }
 
     # Check if alias exists and remove it
     let aliases = (^mc alias list | complete)
@@ -192,7 +202,7 @@ def configure_mc_alias [config: record] {
     }
 
     # Add new alias using keyring credentials
-    let result = (^mc alias set $config.alias $config.url $config.access_key $actual_secret | complete)
+    let result = (^mc alias set $config.alias $config.url $actual_access_key $actual_secret | complete)
 
     if $result.exit_code == 0 {
         print $"✅ MinIO client alias '($config.alias)' configured successfully"
@@ -292,12 +302,13 @@ def try_pixi_auth_login [config: record, url: string] {
         return false
     }
 
-    # Get secret from keyring if available
-    let keyring_secret = (get_keyring_credentials $config.access_key)
-    let actual_secret = if ($keyring_secret != null) { $keyring_secret } else { $config.secret_key }
+    # Get credentials from keyring if available using alias only
+    let keyring_creds = (get_keyring_credentials $config.alias)
+    let actual_secret = if ($keyring_creds != null) { $keyring_creds.secret } else { $config.secret_key }
+    let actual_access_key = if ($keyring_creds != null and $keyring_creds.account != null) { $keyring_creds.account } else { $config.access_key }
 
     # Try to login with S3 bucket format for secure storage
-    let login_result = (^pixi auth login $config.channel --s3-access-key-id $config.access_key --s3-secret-access-key $actual_secret | complete)
+    let login_result = (^pixi auth login $config.channel --s3-access-key-id $actual_access_key --s3-secret-access-key $actual_secret | complete)
 
     if $login_result.exit_code == 0 {
         print "✅ Credentials stored securely via pixi auth login"

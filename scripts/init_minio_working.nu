@@ -12,9 +12,22 @@ def main [
     print "🚀 Minimal MinIO initialization..."
     print ""
 
-    # Get secret from keyring
-    let secret_key = get_keyring_password $access_key
-    print $"ℹ️ Using credentials: ($access_key) / <password from keyring>"
+    # Get secret from keyring using alias and access key
+    let secret_key = get_keyring_password $alias $access_key
+
+    # Store credentials in keyring if not already there
+    if ($secret_key == "miniosecurepassword123") {
+        print $"ℹ️ Storing new credentials for alias '($alias)' account '($access_key)' in keyring..."
+        if (store_keyring_password $alias $access_key "miniosecurepassword123") {
+            print "✅ Credentials stored in GNOME keyring"
+        } else {
+            print "⚠️ Failed to store credentials in keyring, using default"
+        }
+    } else {
+        print $"ℹ️ Using credentials from keyring for alias '($alias)' account '($access_key)'"
+    }
+
+    print $"ℹ️ Using credentials: ($access_key) / <password from keyring for ($alias):($access_key)>"
 
     # Step 1: Check if mc is available
     if not (which mc | is-not-empty) {
@@ -96,14 +109,23 @@ def main [
     print $"📦 Bucket: ($bucket)"
 }
 
-# Get password from keyring
-def get_keyring_password [username: string] {
+# Get password from keyring using alias and account
+def get_keyring_password [alias: string, account: string] {
     if (which secret-tool | is-not-empty) {
-        let result = (^secret-tool lookup service mc account $username | complete)
+        let result = (^secret-tool lookup service mc alias $alias account $account | complete)
         if $result.exit_code == 0 and ($result.stdout | str length) > 0 {
             return ($result.stdout | str trim)
         }
     }
     # Fallback to default if keyring fails
     return "miniosecurepassword123"
+}
+
+# Store password in keyring using alias and account
+def store_keyring_password [alias: string, account: string, password: string] {
+    if (which secret-tool | is-not-empty) {
+        let result = (echo $password | ^secret-tool store --label=$"MinIO Credentials for ($alias):($account)" service mc alias $alias account $account | complete)
+        return ($result.exit_code == 0)
+    }
+    return false
 }
