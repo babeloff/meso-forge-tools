@@ -2,7 +2,7 @@
 
 [workspace]
 name = "meso-forge"
-version = "0.1.0"
+version = "0.1.1"
 description = "Multi-package build suite"
 authors = ["Fred Eisele <fred.eisele@vanderbilt.edu>"]
 channels = ["conda-forge", "https://prefix.dev/meso-forge"]
@@ -306,7 +306,7 @@ depends-on = [
 # MinIO initialization tasks
 [tasks.init-minio]
 description = "Initialize local MinIO client for conda packages"
-cmd = ["nu", "scripts/init_minio.nu"]
+cmd = ["nu", "scripts/init_minio_working.nu"]
 cwd = "."
 
 [tasks.init-minio-custom]

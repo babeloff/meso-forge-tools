@@ -18,10 +18,30 @@
 # Default configuration
 const DEFAULT_MINIO_URL = "http://localhost:19000"
 const DEFAULT_MINIO_ACCESS_KEY = "minioadmin"
-const DEFAULT_MINIO_SECRET_KEY = "minioadmin"
+const DEFAULT_MINIO_SECRET_KEY = "miniosecurepassword123"
 const DEFAULT_BUCKET_NAME = "meso-forge"
 const DEFAULT_CHANNEL_NAME = "s3://meso-forge"
 const DEFAULT_MINIO_ALIAS = "local-minio"
+
+# Get credentials from keyring if available
+def get_keyring_credentials [account: string] {
+    if (which secret-tool | is-not-empty) {
+        let result = (^secret-tool lookup service mc account $account | complete)
+        if $result.exit_code == 0 and ($result.stdout | str length) > 0 {
+            return ($result.stdout | str trim)
+        }
+    }
+    return null
+}
+
+# Store credentials in keyring
+def store_keyring_credentials [account: string, password: string] {
+    if (which secret-tool | is-not-empty) {
+        let result = (^secret-tool store --label="MinIO Credentials" service mc account $account | complete)
+        return ($result.exit_code == 0)
+    }
+    return false
+}
 
 # Main command
 def main [
@@ -50,11 +70,27 @@ def main [
         return
     }
 
+    # Try to get credentials from keyring first
+    let keyring_secret = (get_keyring_credentials $access_key)
+    let actual_secret_key = if ($keyring_secret != null) { $keyring_secret } else { $secret_key }
+
+    # Store credentials in keyring if not already there
+    if ($keyring_secret == null) {
+        print $"ℹ️ Storing credentials for ($access_key) in keyring..."
+        if (store_keyring_credentials $access_key $actual_secret_key) {
+            print "✅ Credentials stored in GNOME keyring"
+        } else {
+            print "⚠️ Failed to store credentials in keyring, using provided values"
+        }
+    } else {
+        print $"ℹ️ Using credentials from keyring for ($access_key)"
+    }
+
     # Get configuration from environment or use parameters
     let config = {
         url: ($env.MINIO_URL? | default $url),
         access_key: ($env.MINIO_ACCESS_KEY? | default $access_key),
-        secret_key: ($env.MINIO_SECRET_KEY? | default $secret_key),
+        secret_key: ($env.MINIO_SECRET_KEY? | default $actual_secret_key),
         bucket: ($env.MINIO_BUCKET? | default $bucket),
         channel: ($env.MINIO_CHANNEL? | default $channel),
         alias: ($env.MINIO_ALIAS? | default $alias)
@@ -103,8 +139,11 @@ def main [
 
 # Check if MinIO client (mc) is available
 def check_mc_available [] {
-    let mc_check = (^timeout 5 which mc | complete)
-    if $mc_check.exit_code != 0 {
+    if (which mc | is-not-empty) {
+        let mc_path = (which mc | get path.0)
+        print $"ℹ️ MinIO client (mc) found: ($mc_path)"
+        return true
+    } else {
         print -e "❌ MinIO client (mc) is not installed or not in PATH"
         print "Install mc using one of these methods:"
         print "  - conda install -c conda-forge minio"
@@ -112,10 +151,6 @@ def check_mc_available [] {
         print "  - curl -L https://dl.min.io/client/mc/release/linux-amd64/mc -o mc && chmod +x mc"
         return false
     }
-
-    let mc_path = ($mc_check.stdout | str trim)
-    print $"ℹ️ MinIO client (mc) found: ($mc_path)"
-    return true
 }
 
 # Check if MinIO server is running
@@ -145,6 +180,10 @@ def check_minio_server [url: string] {
 def configure_mc_alias [config: record] {
     print $"ℹ️ Configuring MinIO client alias '($config.alias)'..."
 
+    # Get secret from keyring if available
+    let keyring_secret = (get_keyring_credentials $config.access_key)
+    let actual_secret = if ($keyring_secret != null) { $keyring_secret } else { $config.secret_key }
+
     # Check if alias exists and remove it
     let aliases = (^mc alias list | complete)
     if $aliases.exit_code == 0 and ($aliases.stdout | str contains $config.alias) {
@@ -152,8 +191,8 @@ def configure_mc_alias [config: record] {
         ^mc alias remove $config.alias | complete | ignore
     }
 
-    # Add new alias
-    let result = (^mc alias set $config.alias $config.url $config.access_key $config.secret_key | complete)
+    # Add new alias using keyring credentials
+    let result = (^mc alias set $config.alias $config.url $config.access_key $actual_secret | complete)
 
     if $result.exit_code == 0 {
         print $"✅ MinIO client alias '($config.alias)' configured successfully"
@@ -167,23 +206,32 @@ def configure_mc_alias [config: record] {
 
 # Create bucket if it doesn't exist
 def create_bucket [config: record] {
-    print $"ℹ️ Creating bucket '($config.bucket)' if it doesn't exist..."
+    print $"ℹ️ Checking if bucket '($config.bucket)' exists..."
 
-    # Check if bucket exists
-    let bucket_check = (^mc ls $"($config.alias)/($config.bucket)" | complete)
+    # Check if bucket exists by listing all buckets and looking for ours
+    let bucket_list = (^mc ls $config.alias | complete)
 
-    if $bucket_check.exit_code == 0 {
-        print $"ℹ️ Bucket '($config.bucket)' already exists"
-    } else {
-        let create_result = (^mc mb $"($config.alias)/($config.bucket)" | complete)
+    if $bucket_list.exit_code == 0 {
+        let bucket_exists = ($bucket_list.stdout | str contains $"($config.bucket)/")
 
-        if $create_result.exit_code == 0 {
-            print $"✅ Bucket '($config.bucket)' created successfully"
+        if $bucket_exists {
+            print $"ℹ️ Bucket '($config.bucket)' already exists"
         } else {
-            print -e $"❌ Failed to create bucket '($config.bucket)'"
-            print -e $create_result.stderr
-            return false
+            print $"ℹ️ Creating bucket '($config.bucket)'..."
+            let create_result = (^mc mb $"($config.alias)/($config.bucket)" | complete)
+
+            if $create_result.exit_code == 0 {
+                print $"✅ Bucket '($config.bucket)' created successfully"
+            } else {
+                print -e $"❌ Failed to create bucket '($config.bucket)'"
+                print -e $create_result.stderr
+                return false
+            }
         }
+    } else {
+        print -e $"❌ Failed to list buckets on ($config.alias)"
+        print -e $bucket_list.stderr
+        return false
     }
 
     # Set bucket policy to allow public read access
@@ -244,8 +292,12 @@ def try_pixi_auth_login [config: record, url: string] {
         return false
     }
 
+    # Get secret from keyring if available
+    let keyring_secret = (get_keyring_credentials $config.access_key)
+    let actual_secret = if ($keyring_secret != null) { $keyring_secret } else { $config.secret_key }
+
     # Try to login with S3 bucket format for secure storage
-    let login_result = (^pixi auth login $config.channel --s3-access-key-id $config.access_key --s3-secret-access-key $config.secret_key | complete)
+    let login_result = (^pixi auth login $config.channel --s3-access-key-id $config.access_key --s3-secret-access-key $actual_secret | complete)
 
     if $login_result.exit_code == 0 {
         print "✅ Credentials stored securely via pixi auth login"
@@ -377,6 +429,7 @@ def list_stored_credentials [] {
         # Verify on Linux using secret-tool
         if (which secret-tool | is-not-empty) {
             let pixi_search = (^secret-tool search service pixi | complete)
+            let mc_search = (^secret-tool search service mc | complete)
             if $pixi_search.exit_code == 0 and ($pixi_search.stdout | str length) > 0 {
                 print ""
                 print "📋 GNOME Keyring pixi entries:"

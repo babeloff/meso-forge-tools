@@ -2,7 +2,7 @@
 schema_version: 1
 
 context:
-  version: "0.1.4"
+  version: "0.1.5"
 
 package:
   name: meso-forge-tooling
@@ -35,14 +35,14 @@ build:
 
       # Create wrapper script for meso-forge command
       mkdir -p $PREFIX/bin
-      chmod +x $PREFIX/bin/meso-forge
       cp -r scripts/meso-forge  $PREFIX/bin/meso-forge
+      chmod +x $PREFIX/bin/meso-forge
 
       # Create environment activation script
       mkdir -p $PREFIX/etc/conda/activate.d
       cat > $PREFIX/etc/conda/activate.d/meso-forge-tooling.sh << 'EOF'
       export MESO_FORGE_TOOLING_ROOT="$CONDA_PREFIX/share/meso-forge-tooling"
-      export MESO_FORGE_VERSION="0.1.4"
+      export MESO_FORGE_VERSION="0.1.5"
       EOF
 
 requirements:

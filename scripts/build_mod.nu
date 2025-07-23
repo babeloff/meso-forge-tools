@@ -64,26 +64,31 @@ export def find_noarch_packages [
     | get name
     | each {|pkg| $pkg | path basename}
     | where {|pkg|
-        let recipe_path = ($src_dir | path join $pkg "recipe.yaml")
-        if not ($recipe_path | path exists) {
-            print $"X No recipe.yaml found for ($pkg)"
+        try {
+            let recipe_path = ($src_dir | path join $pkg "recipe.yaml")
+            if not ($recipe_path | path exists) {
+                print $"X No recipe.yaml found for ($pkg)"
+                return false
+            } else {
+                print $"recipe.yaml found for ($pkg)"
+                let recipe = resolve_recipe --recipe $recipe_path
+                if ($recipe == nothing) {
+                    print "❌ Package recipe does not exist"
+                    return false
+                }
+                if not ($recipe | pkg_filter) {
+                    print "❌ Package filtered out due to size constraints"
+                    return false
+                }
+                return (match $recipe.build?.noarch? {
+                    "python" => true,
+                    "generic" => true,
+                    _ => false
+                })
+            }
+        } catch {
+            print $"❌ Error processing package ($pkg): ($in)"
             return false
-        } else {
-            print $"recipe.yaml found for ($pkg)"
-            let recipe = resolve_recipe --recipe $recipe_path
-            if ($recipe == nothing) {
-                print "❌ Package recipe does not exist"
-                return false
-            }
-            if not ($recipe | pkg_filter) {
-                print "❌ Package filtered out due to size constraints"
-                return false
-            }
-            return (match $recipe.build?.noarch? {
-                "python" => true,
-                "generic" => true,
-                _ => false
-            })
         }
     }
 }
@@ -98,33 +103,38 @@ export def find_platform_packages [
     | get name
     | each {|pkg| $pkg | path basename}
     | where {|pkg|
-        let recipe_path = ($src_dir | path join $pkg "recipe.yaml")
-        if not ($recipe_path | path exists) {
-            print "❌ Package filtered out because no recipe exists"
+        try {
+            let recipe_path = ($src_dir | path join $pkg "recipe.yaml")
+            if not ($recipe_path | path exists) {
+                print "❌ Package filtered out because no recipe exists"
+                return false
+            } else {
+                let recipe = resolve_recipe --recipe $recipe_path
+                if ($recipe == nothing) {
+                    print "❌ Package recipe is missing or defective"
+                    return false
+                }
+                if not ($recipe | pkg_filter) {
+                    print "❌ Package filtered out due to size constraints"
+                    return false
+                }
+                if $recipe.build == nothing {
+                    print "❌ Package filtered because build section is missing"
+                    return false
+                }
+                if $recipe.build?.noarch? == nothing {
+                    print "✅ Package accepted because no build/noarch section is provided"
+                    return true
+                }
+                return (match $recipe.build?.noarch? {
+                    "python" => false,
+                    "generic" => false,
+                    _ => false
+                })
+            }
+        } catch {
+            print $"❌ Error processing package ($pkg): ($in)"
             return false
-        } else {
-            let recipe = resolve_recipe --recipe $recipe_path
-            if ($recipe == nothing) {
-                print "❌ Package recipe is missing or defective"
-                return false
-            }
-            if not ($recipe | pkg_filter) {
-                print "❌ Package filtered out due to size constraints"
-                return false
-            }
-            if $recipe.build == nothing {
-                print "❌ Package filtered because build section is missing"
-                return false
-            }
-            if $recipe.build?.noarch? == nothing {
-                print "✅ Package accepted because no build/noarch section is provided"
-                return true
-            }
-            return (match $recipe.build?.noarch? {
-                "python" => false,
-                "generic" => false,
-                _ => true
-            })
         }
     }
 }
