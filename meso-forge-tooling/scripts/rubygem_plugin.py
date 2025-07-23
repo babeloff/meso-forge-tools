@@ -12,7 +12,7 @@ from pathlib import Path
 
 # Add current directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
-from __init__ import SourcePlugin, VersionInfo
+from plugins_source import SourcePlugin, VersionInfo
 
 
 class RubyGemsPlugin(SourcePlugin):

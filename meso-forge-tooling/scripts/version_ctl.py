@@ -37,7 +37,7 @@ except ImportError:
 import semver
 
 # Import plugin system
-from __init__ import PluginManager, VersionInfo
+from plugins_source import PluginManager, VersionInfo
 
 
 class UpdateStats:
