@@ -1,25 +1,33 @@
 {
   "_comment": "Example authentication file for local MinIO setup",
   "_note": "This file shows the authentication configuration for a local MinIO server",
+  "_warning": "RATTLER_AUTH_FILE is not recommended - use keyring storage instead",
+  "_recommended": "Use 'pixi run init-minio' to automatically generate proper S3 access keys",
   "_usage": [
+    "RECOMMENDED: Use keyring storage instead of this file",
+    "1. Run: pixi run init-minio (this will auto-generate proper S3 keys)",
+    "2. Keys are stored securely in system keyring",
+    "",
+    "IF YOU MUST USE FILE-BASED AUTH (not recommended):",
     "1. Copy this file to ~/.rattler/credentials.json",
     "2. Update credentials if you changed the default MinIO access keys",
     "3. Set RATTLER_AUTH_FILE environment variable: export RATTLER_AUTH_FILE=~/.rattler/credentials.json",
+    "   Note: RATTLER_AUTH_FILE takes highest priority but keyring storage is recommended",
     "4. Run: pixi run init-minio"
   ],
 
   "http://localhost:19000": {
     "S3Credentials": {
-      "access_key_id": "minioadmin",
-      "secret_access_key": "minioadmin",
+      "access_key_id": "YOUR_GENERATED_ACCESS_KEY",
+      "secret_access_key": "YOUR_GENERATED_SECRET_KEY",
       "session_token": null
     }
   },
 
   "s3://meso-forge": {
     "S3Credentials": {
-      "access_key_id": "minioadmin",
-      "secret_access_key": "minioadmin",
+      "access_key_id": "YOUR_GENERATED_ACCESS_KEY",
+      "secret_access_key": "YOUR_GENERATED_SECRET_KEY",
       "session_token": null
     }
   },
@@ -30,8 +38,8 @@
     "custom_port": {
       "http://localhost:9000": {
         "S3Credentials": {
-          "access_key_id": "minioadmin",
-          "secret_access_key": "minioadmin",
+          "access_key_id": "your_generated_access_key",
+          "secret_access_key": "your_generated_secret_key",
           "session_token": null
         }
       }
@@ -70,8 +78,8 @@
       },
       "http://localhost:19000": {
         "S3Credentials": {
-          "access_key_id": "minioadmin",
-          "secret_access_key": "minioadmin",
+          "access_key_id": "your_generated_access_key",
+          "secret_access_key": "your_generated_secret_key",
           "session_token": null
         }
       },

@@ -357,7 +357,7 @@ The scripts rely on several environment variables:
 |Variable |Purpose |Used By
 
 |`RATTLER_AUTH_FILE`
-|Authentication for rattler-build
+|Authentication for rattler-build (not recommended, use keyring instead)
 |package_publish.nu, package_retract.nu
 
 |`PREFIX_API_TOKEN`
@@ -447,7 +447,8 @@ pixi run publish-status
    * Use `.scripts/package_publish.nu` directly or fix import paths
 
 . *Authentication Issues*
-   * Ensure `RATTLER_AUTH_FILE` is set for publishing
+   * Recommended: Use `pixi auth login` for keyring storage
+   * Alternative: Ensure `RATTLER_AUTH_FILE` is set (not recommended)
    * Verify API tokens for prefix.dev and S3 credentials
 
 . *Build Failures*

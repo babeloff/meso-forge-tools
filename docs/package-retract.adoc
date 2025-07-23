@@ -123,11 +123,15 @@ Here's a complete example showing how to retract a problematic package version:
 # Method A: Environment variable
 export PREFIX_API_TOKEN=pfx_your_actual_api_token_here
 
-# Method B: RATTLER_AUTH_FILE (recommended)
+# Method B: Keyring storage (recommended)
+pixi auth login prefix.dev --token pfx_your_token_here
+
+# Method C: RATTLER_AUTH_FILE (not recommended)
 export RATTLER_AUTH_FILE=~/.rattler/credentials.json
+# Note: RATTLER_AUTH_FILE takes highest priority but keyring storage is recommended
 # Ensure credentials.json contains: {"https://prefix.dev": {"BearerToken": "pfx_your_token"}}
 
-# Method C: Use default auth file locations (no setup needed)
+# Method D: Use default auth file locations (no setup needed)
 
 # 2. First, do a dry run to see what would be deleted
 nu package_retract.nu my-problematic-package \
@@ -516,7 +520,8 @@ The script validates:
 - `curl` command-line tool installed
 - Authentication configured via one of:
   - `PREFIX_API_TOKEN` environment variable
-  - `RATTLER_AUTH_FILE` (recommended for conda/mamba ecosystem integration)
+  - Platform keyring (recommended): `pixi auth login prefix.dev --token pfx_token`
+  - `RATTLER_AUTH_FILE` (not recommended, takes highest priority)
   - Default auth file locations
 
 ==== Setting up prefix.dev Authentication
@@ -527,10 +532,17 @@ The script validates:
 export PREFIX_API_TOKEN=pfx_your_api_token_here
 ----
 
-*Option 2: RATTLER_AUTH_FILE (Recommended)*
+*Option 2: Keyring Storage (Recommended)*
+[source,bash]
+----
+pixi auth login prefix.dev --token pfx_your_token_here
+----
+
+*Option 3: RATTLER_AUTH_FILE (Not Recommended)*
 [source,bash]
 ----
 export RATTLER_AUTH_FILE=~/.rattler/credentials.json
+# Note: RATTLER_AUTH_FILE takes highest priority but keyring storage is recommended
 ----
 
 The auth file should contain your prefix.dev token in JSON format:
@@ -585,7 +597,7 @@ The script provides clear error messages for common issues:
 === Common Issues
 
 1. *Authentication Errors*:
-   - For prefix.dev: Ensure authentication is configured via `PREFIX_API_TOKEN`, `RATTLER_AUTH_FILE`, or default auth file locations
+   - For prefix.dev: Ensure authentication is configured via `PREFIX_API_TOKEN`, keyring (`pixi auth login`), `RATTLER_AUTH_FILE` (not recommended), or default auth file locations
    - For S3: Ensure AWS credentials are properly configured
 
 2. *Package Not Found*: Verify the package name, version, and platform are correct.

@@ -11,8 +11,7 @@ const DEFAULT_MINIO_SECRET_KEY = "minioadmin"
 # Main command
 def main [
     --url: string = $DEFAULT_MINIO_URL,           # MinIO server URL
-    --access-key: string = $DEFAULT_MINIO_ACCESS_KEY,  # MinIO access key
-    --secret-key: string = $DEFAULT_MINIO_SECRET_KEY,  # MinIO secret key
+    --interactive                                 # Prompt for credentials if not found
     --list-credentials                            # List stored credentials
     --remove-credentials                          # Remove stored credentials
     --help                                        # Show help
@@ -34,9 +33,7 @@ def main [
 
     # Get configuration from environment or use parameters
     let config = {
-        url: ($env.MINIO_URL? | default $url),
-        access_key: ($env.MINIO_ACCESS_KEY? | default $access_key),
-        secret_key: ($env.MINIO_SECRET_KEY? | default $secret_key)
+        url: ($env.MINIO_URL? | default $url)
     }
 
     print "🔐 Testing MinIO credential storage..."
@@ -202,15 +199,14 @@ def remove_stored_credentials [] {
 
 # Show help information
 def show_help [] {
-    print "🔐 MinIO Credential Storage Test Script"
+    print "🔐 MinIO Credential Storage Test Script (Secure)"
     print ""
     print "USAGE:"
     print "    nu test_credentials.nu [OPTIONS]"
     print ""
     print "OPTIONS:"
     print "    --url URL               MinIO server URL (default: http://localhost:19000)"
-    print "    --access-key KEY        MinIO access key (default: minioadmin)"
-    print "    --secret-key KEY        MinIO secret key (default: minioadmin)"
+    print "    --interactive           Prompt for credentials securely if not found"
     print "    --list-credentials      List stored credentials in system keychain"
     print "    --remove-credentials    Remove stored credentials from system keychain"
     print "    --help                  Show this help message"
@@ -219,8 +215,8 @@ def show_help [] {
     print "    # Test credential storage with defaults"
     print "    nu test_credentials.nu"
     print ""
-    print "    # Test with custom credentials"
-    print "    nu test_credentials.nu --access-key mykey --secret-key mysecret"
+    print "    # Test with interactive credential entry"
+    print "    nu test_credentials.nu --interactive"
     print ""
     print "    # List stored credentials"
     print "    nu test_credentials.nu --list-credentials"
@@ -229,9 +225,11 @@ def show_help [] {
     print "    nu test_credentials.nu --remove-credentials"
     print ""
     print "SECURITY FEATURES:"
+    print "    - NO credential parameters (prevents command history exposure)"
     print "    - Uses pixi auth login s3://bucket for cross-platform secure storage"
     print "    - Stores credentials in system keychain via pixi infrastructure"
     print "    - Credentials stored with 'pixi' service name in S3 format"
+    print "    - Secure interactive credential entry when needed"
     print "    - Search for 'pixi' or 's3://' in your system's credential manager"
     print "    - On Linux: Use 'secret-tool search service pixi' to verify storage"
 }

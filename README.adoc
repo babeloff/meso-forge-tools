@@ -3,6 +3,8 @@
 
 Multi-package build suite for conda packages.
 
+IMPORTANT: For important security updates and credential management changes, see link:docs/security-changelog.adoc[Security Changelog].
+
 == Installation
 
 [source,bash]
@@ -55,9 +57,12 @@ For development with MinIO S3-compatible storage:
 
 [source,bash]
 ----
-# Configure MinIO client for conda packages
+# Configure MinIO client for conda packages (secure - auto-detects credentials)
 # (assumes MinIO server is already running)
 pixi run init-minio
+
+# For new setups or credential entry
+pixi run init-minio-interactive
 
 # Build and publish packages
 pixi run build-all
@@ -65,4 +70,20 @@ pixi run publish-local
 pixi run index-local
 ----
 
-See link:docs/minio-setup.adoc[MinIO Client Configuration Guide] for detailed setup options.
+=== Secure Credential Management
+
+The tools use secure credential handling:
+
+[source,bash]
+----
+# List stored credentials
+pixi run minio-list-credentials
+
+# Add production server with secure credential entry
+pixi run minio-add-alias production https://minio.example.com
+
+# Test connections
+pixi run minio-test-alias local-minio
+----
+
+See link:docs/minio-setup.adoc[MinIO Client Configuration Guide] for detailed setup options and security features.

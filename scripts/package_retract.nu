@@ -130,9 +130,10 @@ def retract-from-prefix-dev [
     let api_token = get-prefix-api-token $channel $verbose
     if ($api_token | is-empty) {
         print -e "❌ No API token found for prefix.dev"
-        print -e "   Either set PREFIX_API_TOKEN environment variable:"
+        print -e "   Recommended: use PREFIX_API_TOKEN environment variable:"
         print -e "   export PREFIX_API_TOKEN=pfx_your_token_here"
-        print -e "   Or configure authentication in RATTLER_AUTH_FILE"
+        print -e "   Or use keyring: pixi auth login prefix.dev --token pfx_your_token"
+        print -e "   Note: RATTLER_AUTH_FILE also works but is not recommended"
         return
     }
 
@@ -316,11 +317,11 @@ def get-prefix-api-token [channel: string, verbose: bool] {
         return $env_token
     }
 
-    # Try to get token from RATTLER_AUTH_FILE
+    # Try to get token from RATTLER_AUTH_FILE (highest priority but not recommended)
     let auth_file = $env.RATTLER_AUTH_FILE? | default ""
     if not ($auth_file | is-empty) and ($auth_file | path exists) {
         if $verbose {
-            print $"🔑 Checking RATTLER_AUTH_FILE for authentication: ($auth_file)"
+            print $"🔑 Using RATTLER_AUTH_FILE for authentication (not recommended, use keyring): ($auth_file)"
         }
 
         let token = get-token-from-auth-file $auth_file $channel $verbose

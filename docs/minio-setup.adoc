@@ -4,6 +4,8 @@
 
 This comprehensive guide explains how to set up MinIO for conda package hosting with the meso-forge toolchain, including secure credential storage, authentication configuration, and complete workflow integration.
 
+TIP: For detailed information about recent security enhancements and changes, see link:security-changelog.adoc[Security Changelog].
+
 == Overview
 
 The meso-forge tools provide complete MinIO integration for S3-compatible conda package storage with:
@@ -70,12 +72,14 @@ For production deployments, point to an existing MinIO instance:
 
 === Security Hierarchy
 
-The tools use this security hierarchy (best to least secure):
+**Credential Priority Order (pixi/rattler/rattler-build):**
 
-1. **`pixi auth login s3://bucket`** - Primary and preferred method for cross-platform secure storage
-2. **RATTLER_AUTH_FILE** - Only as a fallback when pixi is unavailable (⚠️ less secure)
+1. **RATTLER_AUTH_FILE** environment variable (⚠️ not recommended)
+2. **--auth-file** command line parameter (⚠️ not recommended)
+3. **Platform keyring** (✅ recommended - use `pixi auth login`)
+4. **~/.rattler/credentials.json** (legacy fallback)
 
-**Simplified Approach:** We now rely exclusively on `pixi auth login` for secure credential storage, as it automatically handles system keychain integration without requiring platform-specific code.
+**Recommended Approach:** Use `pixi auth login s3://bucket` for secure keyring storage, as it automatically handles system keychain integration without requiring platform-specific code.
 
 **Why S3 bucket format?** Using `pixi auth login s3://bucket-name` ensures credentials are stored in your system's secure keychain with the proper S3 authentication format that rattler-based tools expect.
 
@@ -87,9 +91,87 @@ The tools use this security hierarchy (best to least secure):
 pixi run init-minio
 
 # The script will:
-# 1. Use `pixi auth login s3://meso-forge` for secure S3 credential storage
-# 2. Fall back to RATTLER_AUTH_FILE only if pixi is unavailable
-# 3. Provide clear feedback about where credentials are stored
+# 1. Auto-detect credentials from existing keyring storage
+# 2. Use `pixi auth login s3://meso-forge` for secure S3 credential storage
+# 3. Prompt for credentials interactively if needed (--interactive flag)
+# 4. Never accept credentials as command-line parameters (security risk)
+# 5. Store credentials in platform keyring (recommended)
+# 6. Provide clear feedback about where credentials are stored
+
+== 🔐 Secure Credential Management
+
+**SECURITY ENHANCEMENT**: The meso-forge tools now use a secure credential management model that eliminates security risks from command-line credential exposure.
+
+=== Security Principles
+
+The tools follow these security principles:
+
+1. **No credential parameters** - Scripts never accept `--access-key` or `--secret-key` parameters
+2. **Keyring storage** - All credentials stored in system keychain via `pixi auth login`
+3. **Auto-detection** - Credentials automatically retrieved from secure storage
+4. **Interactive entry** - Secure credential prompting when needed
+5. **Multiple storage** - Redundant secure storage for compatibility
+
+=== Credential Sources (Priority Order)
+
+The system obtains credentials from these sources in order:
+
+1. **Existing keyring storage** (from previous `pixi auth login`)
+2. **MinIO server configuration** (via admin API - future enhancement)
+3. **Default credentials** (local development only)
+4. **Interactive secure entry** (with `--interactive` flag)
+
+=== Secure Usage Examples
+
+[source,bash]
+----
+# Basic initialization with auto-detected credentials
+pixi run init-minio
+
+# Interactive credential entry for new setups
+pixi run init-minio-interactive
+
+# Add production server with interactive credentials
+pixi run minio-add-alias production https://minio.example.com
+
+# List all stored credentials
+pixi run minio-list-credentials
+
+# Test existing connection
+pixi run minio-test-alias local-minio
+
+# Remove credentials and alias
+pixi run minio-remove-alias production
+----
+
+=== Manual Secure Credential Management
+
+[source,bash]
+----
+# List stored credentials and aliases
+nu scripts/manage_minio_credentials.nu --list
+
+# Add new alias with secure credential handling
+nu scripts/manage_minio_credentials.nu --add \
+    --alias production \
+    --url https://minio.example.com \
+    --interactive
+
+# Test connection
+nu scripts/manage_minio_credentials.nu --test --alias production
+
+# Remove alias and all credentials
+nu scripts/manage_minio_credentials.nu --remove --alias production
+----
+
+=== Security Benefits
+
+✅ **No credential exposure** in command history or process lists
+✅ **System keyring integration** via `pixi auth login`
+✅ **Cross-platform security** using native credential storage
+✅ **Automatic credential detection** when possible
+✅ **Secure interactive entry** when needed
+✅ **Multiple storage locations** for compatibility
 # 4. Verify storage (on Linux, uses secret-tool for confirmation)
 ----
 
@@ -111,6 +193,163 @@ pixi auth logout s3://meso-forge  # This will show if credentials exist
 # On Linux, verify with secret-tool:
 secret-tool search service pixi
 ----
+
+== Bucket Removal
+
+=== Removing MinIO Buckets
+
+The meso-forge tools provide a secure way to remove MinIO buckets and clean up all associated credentials:
+
+[source,bash]
+----
+# Preview what will be removed (recommended first step)
+pixi run remove-minio-bucket-dry-run
+
+# Remove the local meso-forge bucket and all credentials
+pixi run remove-minio-bucket
+
+# Remove a custom bucket with confirmation
+nu scripts/remove_minio_bucket.nu --server https://minio.example.com --bucket my-bucket
+
+# Remove without confirmation prompts
+nu scripts/remove_minio_bucket.nu --force
+----
+
+**What gets removed:**
+
+1. **Bucket Contents**: All objects in the specified bucket
+2. **Bucket**: The bucket itself
+3. **Keyring Credentials**: Platform keyring entries via `pixi auth logout`
+4. **RATTLER_AUTH_FILE**: Credential entries (if present)
+
+**What is preserved:**
+
+- **MC Alias**: MinIO client alias configuration (may be used for other buckets)
+
+**Security Features:**
+
+- **Confirmation Required**: Interactive confirmation unless `--force` is used
+- **Dry Run Mode**: Preview actions with `--dry-run` before execution
+- **Credential Cleanup**: Automatically removes all associated credentials
+- **Backup**: Original auth files are backed up before modification
+- **Alias Preservation**: mc alias configuration is preserved for other bucket operations
+
+**WARNING**: Bucket removal is permanent and cannot be undone. Always use `--dry-run` first to preview the actions.
+
+== Credential Migration
+
+=== Migrating from RATTLER_AUTH_FILE to Keyring
+
+The meso-forge tools provide a script to migrate existing RATTLER_AUTH_FILE credentials to secure platform keyring storage:
+
+[source,bash]
+----
+# Preview migration (recommended first step)
+pixi run migrate-auth-to-keyring
+
+# Execute migration
+pixi run migrate-auth-to-keyring-execute
+
+# Migrate from specific file
+nu scripts/migrate_auth_to_keyring.nu --auth-file /path/to/credentials.json
+
+# Migrate and remove original file after successful migration
+nu scripts/migrate_auth_to_keyring.nu --remove-after-migration
+----
+
+**Supported Credential Types:**
+
+1. **BearerToken**: prefix.dev authentication (`--token`)
+2. **CondaToken**: anaconda.org, quetz authentication (`--conda-token`)
+3. **BasicHttp**: artifactory, custom servers (`--username`, `--password`)
+4. **S3Credentials**: S3-compatible storage (`--s3-access-key-id`, `--s3-secret-access-key`)
+
+**Migration Process:**
+
+- Reads RATTLER_AUTH_FILE (or default ~/.rattler/credentials.json)
+- Converts each credential to equivalent `pixi auth login` command
+- Executes commands to store credentials in platform keyring
+- Optionally removes original file after successful migration
+- Creates backup of original file before removal
+
+**Security Benefits:**
+
+- **Platform Integration**: Uses native keyring/keychain storage
+- **Cross-platform**: Works consistently across Windows, macOS, and Linux
+- **Secure Storage**: Credentials encrypted by operating system
+- **No File Exposure**: Eliminates plain-text credential files
+- **Direct Keyring Access**: RATTLER_AUTH_FILE is automatically unset during pixi auth operations
+
+**Example Migration Session:**
+
+[source,bash]
+----
+# 1. Preview what will be migrated
+$ pixi run migrate-auth-to-keyring
+🔄 RATTLER_AUTH_FILE to Keyring Migration
+═══════════════════════════════════════
+📄 Auth file: /home/user/.rattler/credentials.json
+📋 Mode: DRY RUN
+🔍 Found 3 credential(s) to migrate:
+
+🔐 Bearer token authentication for prefix.dev
+[DRY RUN] Would run: pixi auth login prefix.dev --token pfx_your_token
+
+🔐 S3 credentials for s3://meso-forge
+[DRY RUN] Would run: pixi auth login s3://meso-forge --s3-access-key-id minioadmin --s3-secret-access-key minioadmin
+
+🔐 Conda token authentication for anaconda.org
+[DRY RUN] Would run: pixi auth login anaconda.org --conda-token xy-your-conda-token
+
+# 2. Execute migration
+$ pixi run migrate-auth-to-keyring-execute
+🔐 Bearer token authentication for prefix.dev
+✅ Successfully migrated credentials for prefix.dev
+
+🔐 S3 credentials for s3://meso-forge
+✅ Successfully migrated credentials for s3://meso-forge
+
+🔐 Conda token authentication for anaconda.org
+✅ Successfully migrated credentials for anaconda.org
+
+📊 Migration Summary
+══════════════════
+✅ Successful migrations: 3
+📊 Total processed: 3
+🎉 Credentials have been migrated to platform keyring!
+
+# 3. Verify migration worked
+$ pixi search some-package -c https://prefix.dev/meso-forge
+# Should work without requiring RATTLER_AUTH_FILE
+----
+
+**Troubleshooting:**
+
+Common issues and solutions:
+
+1. **Migration fails with "External command failed"**
+   - Ensure `pixi` is installed and accessible
+   - Check that credentials are valid by testing them manually
+   - Use `--verbose` flag to see detailed error messages
+
+2. **Some credentials not migrated**
+   - Check the credential format in your auth file
+   - Supported types: BearerToken, CondaToken, BasicHttp, S3Credentials
+   - Comment entries (starting with "_") are automatically skipped
+
+3. **After migration, authentication still fails**
+   - Unset `RATTLER_AUTH_FILE` environment variable (it takes highest priority)
+   - Verify keyring storage: `pixi auth logout <host>` shows if credentials exist
+   - Check platform-specific keyring access (Windows: Credential Manager, macOS: Keychain, Linux: secret-tool)
+   - Note: Scripts automatically unset RATTLER_AUTH_FILE when running pixi auth commands
+
+**Post-Migration:**
+
+After successful migration, consider:
+- Unsetting `RATTLER_AUTH_FILE` environment variable
+- Removing original credential files (backup is created automatically)
+- Verifying credentials work: `pixi search package -c channel`
+- Testing publishing workflows to ensure they use keyring credentials
 
 == Configuration
 
@@ -175,13 +414,12 @@ pixi run init-minio-custom \
 
 [source,bash]
 ----
-# Direct script execution with custom parameters
+# Direct script execution with custom parameters (secure)
 nu scripts/init_minio.nu \
   --url https://minio.example.com:9000 \
-  --access-key mykey \
-  --secret-key mysecret \
   --bucket my-conda \
-  --alias production-minio
+  --alias production-minio \
+  --interactive
 ----
 
 === Manual Configuration
@@ -235,15 +473,16 @@ The initialization script automatically configures secure authentication using s
 # Initialize with secure credential storage
 pixi run init-minio
 
-# Credentials are automatically stored in:
-# - System keychain via pixi authentication
-# - Fallback: RATTLER_AUTH_FILE (with warning)
+# Credentials are stored in priority order:
+# - RATTLER_AUTH_FILE (if defined, not recommended)
+# - Platform keyring via pixi authentication (recommended)
+# - ~/.rattler/credentials.json (legacy fallback)
 # - Linux verification: secret-tool search service pixi
 ----
 
 === RATTLER_AUTH_FILE Configuration
 
-If secure storage is not available, the system falls back to RATTLER_AUTH_FILE:
+If RATTLER_AUTH_FILE is defined, it takes highest priority (not recommended):
 
 [source,json]
 ----
@@ -553,23 +792,29 @@ mc admin policy set local-minio readwrite user=developer
 
 === Credential Security
 
-1. **Use Secure Storage**: Always prefer system keychain over RATTLER_AUTH_FILE
-2. **Rotate Credentials**: Regularly update access keys
-3. **Principle of Least Privilege**: Give users only necessary permissions
-4. **Monitor Access**: Enable audit logging
+1. **Use Keyring Storage**: Always use `pixi auth login` for platform keyring (recommended)
+2. **Avoid File-based Auth**: RATTLER_AUTH_FILE and --auth-file are not recommended
+3. **Understand Priority**: RATTLER_AUTH_FILE takes highest priority when defined
+4. **Rotate Credentials**: Regularly update access keys
+5. **Principle of Least Privilege**: Give users only necessary permissions
+6. **Monitor Access**: Enable audit logging
 
 [source,bash]
 ----
 # Check current credential storage method
 pixi run init-minio -- --list-credentials
 
-# If using RATTLER_AUTH_FILE, ensure proper permissions
+# Recommended: Use keyring storage instead of file-based auth
+pixi auth login s3://meso-forge --s3-access-key-id <key> --s3-secret-access-key <secret>
+
+# If using RATTLER_AUTH_FILE (not recommended), ensure proper permissions
 chmod 600 ~/.rattler/credentials.json
 
-# Regular credential rotation
-nu scripts/init_minio.nu \
-  --access-key new-access-key \
-  --secret-key new-secret-key
+----
+# Regular credential rotation (secure)
+# Remove old credentials first, then add new ones interactively
+nu scripts/manage_minio_credentials.nu --remove --alias local-minio
+nu scripts/manage_minio_credentials.nu --add --alias local-minio --url http://localhost:19000 --interactive
 ----
 
 === Production Security
@@ -643,9 +888,17 @@ pixi run init-minio -- --list-credentials
 mc alias set test-auth http://localhost:19000 minioadmin minioadmin
 mc ls test-auth/
 
-# Verify RATTLER_AUTH_FILE if using fallback
+# Verify RATTLER_AUTH_FILE if using (not recommended)
 cat ~/.rattler/credentials.json | jq .
 chmod 600 ~/.rattler/credentials.json
+
+# Recommended: Use keyring storage
+pixi auth login s3://test --s3-access-key-id test --s3-secret-access-key test
+
+# Remove bucket and all credentials
+pixi run remove-minio-bucket-dry-run   # Preview what will be removed
+pixi run remove-minio-bucket           # Actually remove bucket and credentials
+# Note: RATTLER_AUTH_FILE is automatically unset when running pixi auth logout
 ----
 
 === Secure Storage Issues
@@ -995,11 +1248,28 @@ pixi run build-all                     # Build packages
 pixi run publish-local                 # Publish locally
 pixi run index-local                   # Index channel
 
+# Cleanup
+pixi run remove-minio-bucket-dry-run   # Preview bucket removal
+pixi run remove-minio-bucket           # Remove bucket and credentials
+
+# Auth Migration
+pixi run migrate-auth-to-keyring       # Preview RATTLER_AUTH_FILE migration
+pixi run migrate-auth-to-keyring-execute # Migrate to keyring storage
+
 # Credential Management
 nu scripts/test_credentials.nu         # Test credential storage
 pixi auth logout s3://meso-forge       # Remove S3 bucket credentials
 pixi auth login s3://test --help       # See pixi auth options
 mc ls local-minio/meso-forge/          # List packages
+
+# Bucket Removal
+pixi run remove-minio-bucket-dry-run   # Preview bucket removal (dry run)
+pixi run remove-minio-bucket           # Remove local bucket and credentials
+
+# Auth Migration
+pixi run migrate-auth-to-keyring       # Preview auth file migration
+pixi run migrate-auth-to-keyring-execute # Execute auth file migration
+nu scripts/migrate_auth_to_keyring.nu --auth-file custom.json # Migrate specific file
 ----
 
 === Configuration Files

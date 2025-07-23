@@ -305,24 +305,104 @@ depends-on = [
 
 # MinIO initialization tasks
 [tasks.init-minio]
-description = "Initialize local MinIO client for conda packages"
-cmd = ["nu", "scripts/init_minio_working.nu"]
+description = "Initialize local MinIO client for conda packages (secure - auto-detects credentials)"
+cmd = ["nu", "scripts/init_minio.nu"]
 cwd = "."
 
 [tasks.init-minio-custom]
 args = [
     { arg = "url", default = "http://localhost:19000" },
     { arg = "bucket", default = "meso-forge" },
-    { arg = "access_key", default = "minioadmin" },
-    { arg = "secret_key", default = "minioadmin" }
+    { arg = "interactive", default = "false" }
 ]
-description = "Initialize MinIO with custom parameters"
+description = "Initialize MinIO with custom parameters (secure - no credential args)"
 cmd = [
     "nu", "scripts/init_minio.nu",
     "--url", "{{ url }}",
     "--bucket", "{{ bucket }}",
-    "--access-key", "{{ access_key }}",
-    "--secret-key", "{{ secret_key }}"
+    "{{ '--interactive' if interactive == 'true' else '' }}"
+]
+cwd = "."
+
+# New secure MinIO management tasks
+[tasks.init-minio-interactive]
+description = "Initialize MinIO with interactive credential entry (secure)"
+cmd = ["nu", "scripts/init_minio.nu", "--interactive"]
+cwd = "."
+
+[tasks.minio-list-credentials]
+description = "List all stored MinIO credentials"
+cmd = ["nu", "scripts/manage_minio_credentials.nu", "--list"]
+cwd = "."
+
+[tasks.minio-add-alias]
+args = [
+    { arg = "alias", default = "production" },
+    { arg = "url", default = "https://minio.example.com" }
+]
+description = "Add new MinIO alias with secure credential handling"
+cmd = [
+    "nu", "scripts/manage_minio_credentials.nu",
+    "--add",
+    "--alias", "{{ alias }}",
+    "--url", "{{ url }}",
+    "--interactive"
+]
+cwd = "."
+
+[tasks.minio-test-alias]
+args = [{ arg = "alias", default = "local-minio" }]
+description = "Test MinIO alias connection"
+cmd = [
+    "nu", "scripts/manage_minio_credentials.nu",
+    "--test",
+    "--alias", "{{ alias }}"
+]
+cwd = "."
+
+[tasks.minio-remove-alias]
+args = [{ arg = "alias", default = "local-minio" }]
+description = "Remove MinIO alias and all associated credentials"
+cmd = [
+    "nu", "scripts/manage_minio_credentials.nu",
+    "--remove",
+    "--alias", "{{ alias }}"
+]
+cwd = "."
+
+[tasks.remove-minio-bucket]
+description = "Remove local MinIO bucket and clean up credentials"
+cmd = [
+    "nu", "scripts/remove_minio_bucket.nu",
+    "--server", "http://localhost:19000",
+    "--bucket", "meso-forge",
+    "--alias", "local-minio"
+]
+cwd = "."
+
+[tasks.remove-minio-bucket-dry-run]
+description = "Preview MinIO bucket removal (dry run)"
+cmd = [
+    "nu", "scripts/remove_minio_bucket.nu",
+    "--server", "http://localhost:19000",
+    "--bucket", "meso-forge",
+    "--alias", "local-minio",
+    "--dry-run"
+]
+cwd = "."
+
+[tasks.migrate-auth-to-keyring]
+description = "Migrate RATTLER_AUTH_FILE credentials to platform keyring (dry run)"
+cmd = [
+    "nu", "scripts/migrate_auth_to_keyring.nu",
+    "--dry-run"
+]
+cwd = "."
+
+[tasks.migrate-auth-to-keyring-execute]
+description = "Migrate RATTLER_AUTH_FILE credentials to platform keyring"
+cmd = [
+    "nu", "scripts/migrate_auth_to_keyring.nu"
 ]
 cwd = "."
 

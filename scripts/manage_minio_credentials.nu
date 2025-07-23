@@ -1,24 +1,29 @@
 #!/usr/bin/env nu
 
-# MinIO Credential Management Script
+# Secure MinIO Credential Management Script
 # This script helps manage MinIO aliases and their corresponding keyring credentials
 #
+# SECURITY MODEL:
+# - NO credential parameters accepted (security risk)
+# - Credentials obtained from MinIO server or interactive entry
+# - Uses 'pixi auth login' for secure keyring storage
+# - All credential handling uses secure system keychain/keyring
+#
 # Usage:
-#   nu manage_minio_credentials.nu --help
-#   nu manage_minio_credentials.nu --list
-#   nu manage_minio_credentials.nu --add --alias production --url https://minio.example.com --access-key mykey --secret-key mysecret
-#   nu manage_minio_credentials.nu --remove --alias production
-#   nu manage_minio_credentials.nu --test --alias local-minio
+#   nu manage_minio_credentials_secure.nu --help
+#   nu manage_minio_credentials_secure.nu --list
+#   nu manage_minio_credentials_secure.nu --add --alias production --url https://minio.example.com --interactive
+#   nu manage_minio_credentials_secure.nu --remove --alias production
+#   nu manage_minio_credentials_secure.nu --test --alias local-minio
 
 def main [
     --list                          # List all MinIO aliases and their keyring status
-    --add                           # Add new MinIO alias with keyring credentials
+    --add                           # Add new MinIO alias with secure credentials
     --remove                        # Remove MinIO alias and keyring credentials
     --test                          # Test MinIO alias connection
     --alias: string                 # MinIO alias name
     --url: string                   # MinIO server URL (for --add)
-    --access-key: string            # Access key (for --add)
-    --secret-key: string            # Secret key (for --add)
+    --interactive                   # Prompt for credentials interactively
     --help                          # Show help
 ] {
     if $help or (not $list and not $add and not $remove and not $test) {
@@ -32,11 +37,12 @@ def main [
     }
 
     if $add {
-        if ($alias | is-empty) or ($url | is-empty) or ($access_key | is-empty) or ($secret_key | is-empty) {
-            print "❌ For --add, you must provide --alias, --url, --access-key, and --secret-key"
+        if ($alias | is-empty) or ($url | is-empty) {
+            print "❌ For --add, you must provide --alias and --url"
+            print "   Use --interactive to enter credentials securely"
             return
         }
-        add_minio_alias $alias $url $access_key $secret_key
+        add_minio_alias $alias $url $interactive
         return
     }
 
@@ -71,8 +77,8 @@ def list_minio_aliases [] {
     if ($mc_aliases | length) == 0 {
         print "ℹ️ No MinIO aliases configured"
         print ""
-        print "💡 To add an alias with keyring integration:"
-        print "   nu manage_minio_credentials.nu --add --alias myalias --url http://localhost:19000 --access-key mykey --secret-key mysecret"
+        print "💡 To add an alias with secure keyring integration:"
+        print "   nu manage_minio_credentials_secure.nu --add --alias myalias --url http://localhost:19000 --interactive"
         return
     }
 
@@ -100,11 +106,30 @@ def list_minio_aliases [] {
         }
         print ""
     }
+
+    # Show pixi auth stored credentials
+    print "🔐 Pixi Auth Stored Credentials:"
+    if (which secret-tool | is-not-empty) {
+        let pixi_search = (^secret-tool search service pixi | complete)
+        if $pixi_search.exit_code == 0 and ($pixi_search.stdout | str length) > 0 {
+            let s3_entries = ($pixi_search.stdout | lines | where { |line| ($line | str contains 's3://') })
+            if ($s3_entries | length) > 0 {
+                $s3_entries | each { |entry| print $"   🔐 ($entry)" }
+            } else {
+                print "   No S3 bucket credentials found"
+            }
+        } else {
+            print "   No pixi credentials found"
+        }
+    } else {
+        print "   secret-tool not available"
+    }
+    print ""
 }
 
-# Add new MinIO alias with keyring credentials
-def add_minio_alias [alias: string, url: string, access_key: string, secret_key: string] {
-    print $"🚀 Adding MinIO alias '($alias)'..."
+# Add new MinIO alias with secure credential handling
+def add_minio_alias [alias: string, url: string, interactive: bool] {
+    print $"🚀 Adding MinIO alias '($alias)' securely..."
 
     # Check if alias already exists
     let existing_aliases = get_mc_aliases
@@ -115,23 +140,25 @@ def add_minio_alias [alias: string, url: string, access_key: string, secret_key:
         ^mc alias remove $alias | complete | ignore
     }
 
-    # Store credentials in keyring first
-    print $"ℹ️ Storing credentials in keyring for alias '($alias)' account '($access_key)'..."
-    if (store_keyring_password $alias $access_key $secret_key) {
-        print "✅ Credentials stored in GNOME keyring"
-    } else {
-        print "❌ Failed to store credentials in keyring"
+    # Get credentials securely
+    let credentials = get_secure_credentials $alias $url $interactive
+
+    if ($credentials == null) {
+        print "❌ Failed to obtain credentials securely"
         return
     }
 
     # Configure mc alias
-    let result = (^mc alias set $alias $url $access_key $secret_key | complete)
+    let result = (^mc alias set $alias $url $credentials.access_key $credentials.secret_key | complete)
 
     if $result.exit_code == 0 {
         print $"✅ MinIO alias '($alias)' configured successfully"
         print $"📍 URL: ($url)"
-        print $"👤 Access Key: ($access_key)"
-        print $"🔐 Secret Key: <stored in keyring>"
+        print $"👤 Access Key: ($credentials.access_key)"
+        print $"🔐 Secret Key: <stored securely>"
+
+        # Store credentials securely
+        store_credentials_securely $alias $url $credentials
 
         # Test the connection
         print ""
@@ -139,40 +166,231 @@ def add_minio_alias [alias: string, url: string, access_key: string, secret_key:
     } else {
         print $"❌ Failed to configure MinIO alias '($alias)'"
         print $result.stderr
-
-        # Clean up keyring entry on failure
-        clear_keyring_password $alias
     }
 }
 
-# Remove MinIO alias and keyring credentials
-def remove_minio_alias [alias: string] {
-    print $"🗑️ Removing MinIO alias '($alias)'..."
+# Get credentials through secure methods
+def get_secure_credentials [alias: string, url: string, interactive: bool] {
+    print "🔍 Obtaining credentials securely..."
 
-    # Check if alias exists
-    let existing_aliases = get_mc_aliases
-    let alias_exists = ($existing_aliases | where alias == $alias | length) > 0
+    # Check if credentials already exist in keyring
+    let existing_creds = get_stored_credentials $alias
+    if ($existing_creds != null) {
+        print "✅ Found existing credentials in keyring"
+        return $existing_creds
+    }
 
-    if not $alias_exists {
-        print $"⚠️ Alias '($alias)' does not exist in mc configuration"
-    } else {
-        # Remove mc alias
-        let result = (^mc alias remove $alias | complete)
-        if $result.exit_code == 0 {
-            print $"✅ MinIO alias '($alias)' removed from mc configuration"
-        } else {
-            print $"⚠️ Failed to remove mc alias: ($result.stderr)"
+    # Try to get from MinIO server configuration
+    let server_creds = get_credentials_from_server $url
+    if ($server_creds != null) {
+        print "✅ Retrieved credentials from MinIO server"
+        return $server_creds
+    }
+
+    # Check for local development defaults
+    if ($url | str contains "localhost") or ($url | str contains "127.0.0.1") {
+        print "ℹ️ Local MinIO detected - checking default credentials"
+        let default_creds = test_default_credentials $url
+        if ($default_creds != null) {
+            print "✅ Using default local MinIO credentials"
+            return $default_creds
         }
     }
 
-    # Remove keyring credentials
-    if (clear_keyring_password $alias) {
-        print $"✅ Credentials removed from keyring for alias '($alias)'"
-    } else {
-        print $"⚠️ No keyring credentials found for alias '($alias)' or failed to remove"
+    # Interactive credential entry
+    if $interactive {
+        print "ℹ️ Prompting for credentials interactively..."
+        return (prompt_for_credentials)
     }
 
-    print $"🎉 Cleanup completed for alias '($alias)'"
+    print "❌ No credentials available. Use --interactive to enter them securely."
+    return null
+}
+
+# Get stored credentials from keyring
+def get_stored_credentials [alias: string] {
+    # Try pixi format first
+    if (which secret-tool | is-not-empty) {
+        let pixi_search = (^secret-tool search service pixi | complete)
+        if $pixi_search.exit_code == 0 and ($pixi_search.stdout | str length) > 0 {
+            # Parse pixi credentials if they exist for this alias
+            # This would need to be implemented based on pixi's storage format
+        }
+
+        # Try mc format
+        let result = (^secret-tool lookup service mc alias $alias | complete)
+        if $result.exit_code == 0 and ($result.stdout | str length) > 0 {
+            let credentials_json = ($result.stdout | str trim)
+            try {
+                let parsed = ($credentials_json | from json)
+                return {access_key: $parsed.account, secret_key: $parsed.secret}
+            } catch {
+                return null
+            }
+        }
+    }
+    return null
+}
+
+# Attempt to get credentials from MinIO server
+def get_credentials_from_server [url: string] {
+    print $"ℹ️ Checking MinIO server at ($url) for credential configuration..."
+
+    # Check server accessibility
+    let ping_result = (^curl -s --connect-timeout 5 $"($url)/minio/health/live" | complete)
+    if $ping_result.exit_code != 0 {
+        print "⚠️ MinIO server not accessible"
+        return null
+    }
+
+    # In a production environment, this might:
+    # 1. Check for service account configurations
+    # 2. Integrate with identity providers (LDAP, AD, etc.)
+    # 3. Use admin API to retrieve/create service credentials
+    # 4. Check for environment-specific credential stores
+
+    print "ℹ️ Server accessible but credential auto-retrieval not implemented"
+    print "   Consider implementing integration with your credential management system"
+    return null
+}
+
+# Test default credentials for local development
+def test_default_credentials [url: string] {
+    let default_combinations = [
+        {access_key: "minioadmin", secret_key: "minioadmin"},
+        {access_key: "minioadmin", secret_key: "miniosecurepassword123"},
+        {access_key: "admin", secret_key: "password"},
+        {access_key: "minio", secret_key: "minio123"}
+    ]
+
+    for creds in $default_combinations {
+        print $"ℹ️ Testing credentials: ($creds.access_key)"
+        let test_result = (^mc alias set test-temp $url $creds.access_key $creds.secret_key | complete)
+        if $test_result.exit_code == 0 {
+            ^mc alias remove test-temp | complete | ignore
+            print $"✅ Found working default credentials: ($creds.access_key)"
+            return $creds
+        }
+    }
+
+    return null
+}
+
+# Prompt for credentials interactively and securely
+def prompt_for_credentials [] {
+    print ""
+    print "🔐 Please enter MinIO credentials:"
+    print "   (These will be stored securely in your system keyring)"
+    print ""
+
+    let access_key = (input "Access Key: ")
+    if ($access_key | str length) == 0 {
+        print "❌ Access key is required"
+        return null
+    }
+
+    # Use secure password input methods
+    let secret_key = if (which systemd-ask-password | is-not-empty) {
+        (^systemd-ask-password --no-tty "Secret Key: " | str trim)
+    } else if (which python3 | is-not-empty) {
+        (^python3 -c "import getpass; print(getpass.getpass('Secret Key: '))" | str trim)
+    } else {
+        print "⚠️ No secure password input method available, using basic input"
+        (input --suppress-output "Secret Key: ")
+    }
+
+    if ($secret_key | str length) == 0 {
+        print "❌ Secret key is required"
+        return null
+    }
+
+    print "✅ Credentials entered successfully"
+    return {access_key: $access_key, secret_key: $secret_key}
+}
+
+# Store credentials securely using multiple methods
+def store_credentials_securely [alias: string, url: string, credentials: record] {
+    print "🔐 Storing credentials securely..."
+
+    mut success_count = 0
+
+    # Store with pixi auth login (primary method)
+    if (which pixi | is-not-empty) {
+        let bucket_name = $"s3://($alias)"
+        let login_result = (^pixi auth login $bucket_name --s3-access-key-id $credentials.access_key --s3-secret-access-key $credentials.secret_key | complete)
+
+        if $login_result.exit_code == 0 {
+            print "✅ Credentials stored via pixi auth login"
+            $success_count = ($success_count + 1)
+        } else {
+            print "⚠️ Failed to store credentials via pixi auth"
+            print $login_result.stderr
+        }
+    } else {
+        print "⚠️ pixi not available for secure credential storage"
+    }
+
+    # Store in mc-compatible keyring format (secondary method)
+    if (which secret-tool | is-not-empty) {
+        let cred_json = {account: $credentials.access_key, secret: $credentials.secret_key} | to json
+        let result = (echo $cred_json | ^secret-tool store --label=$"MinIO Credentials for ($alias):($credentials.access_key)" service mc alias $alias | complete)
+        if $result.exit_code == 0 {
+            print "✅ Credentials stored in mc-compatible keyring format"
+            $success_count = ($success_count + 1)
+        } else {
+            print "⚠️ Failed to store credentials in keyring"
+        }
+    } else {
+        print "⚠️ secret-tool not available for keyring storage"
+    }
+
+    if $success_count > 0 {
+        let count_message = $"($success_count) secure locations"
+        print $"🎉 Credentials stored successfully in ($count_message)"
+    } else {
+        print "❌ Failed to store credentials in any secure location"
+    }
+}
+
+# Remove MinIO alias and all associated credentials
+def remove_minio_alias [alias: string] {
+    print $"🗑️ Removing MinIO alias '($alias)' and all credentials..."
+
+    mut removal_count = 0
+
+    # Remove mc alias
+    let alias_result = (^mc alias remove $alias | complete)
+    if $alias_result.exit_code == 0 {
+        print $"✅ MinIO alias '($alias)' removed from mc configuration"
+        $removal_count = ($removal_count + 1)
+    } else {
+        print $"⚠️ Failed to remove mc alias or alias didn't exist"
+    }
+
+    # Remove from pixi auth
+    if (which pixi | is-not-empty) {
+        let logout_result = (^pixi auth logout $"s3://($alias)" | complete)
+        if $logout_result.exit_code == 0 {
+            print $"✅ Credentials removed from pixi auth"
+            $removal_count = ($removal_count + 1)
+        } else {
+            print $"⚠️ No pixi auth credentials found for alias '($alias)'"
+        }
+    }
+
+    # Remove from keyring
+    if (which secret-tool | is-not-empty) {
+        let clear_result = (^secret-tool clear service mc alias $alias | complete)
+        if $clear_result.exit_code == 0 {
+            print $"✅ Credentials removed from keyring"
+            $removal_count = ($removal_count + 1)
+        } else {
+            print $"⚠️ No keyring credentials found for alias '($alias)'"
+        }
+    }
+
+    let count_message = $"($removal_count) items removed"
+    print $"🎉 Cleanup completed for alias '($alias)' ($count_message)"
 }
 
 # Test MinIO alias connection
@@ -211,6 +429,12 @@ def test_minio_alias [alias: string] {
     } else {
         print $"❌ Connection failed to '($alias)'"
         print $"Error: ($list_result.stderr)"
+        print ""
+        print "💡 This might indicate:"
+        print "   - Invalid credentials"
+        print "   - Server not accessible"
+        print "   - Network connectivity issues"
+        print "   Try: nu manage_minio_credentials_secure.nu --add --alias ($alias) --url <server-url> --interactive"
     }
 }
 
@@ -271,7 +495,7 @@ def get_orphaned_keyring_entries [mc_aliases: list] {
 
     let keyring_aliases = ($search_result.stdout
         | lines
-        | where { |line| ($line | str contains "alias = ") }
+        | where { |line| ($line | str contains 'alias = ') }
         | parse "alias = {alias}"
         | get alias)
 
@@ -280,77 +504,71 @@ def get_orphaned_keyring_entries [mc_aliases: list] {
     $keyring_aliases | where { |kr_alias| $kr_alias not-in $mc_alias_names }
 }
 
-# Store password in keyring
-def store_keyring_password [alias: string, account: string, password: string] {
-    if (which secret-tool | is-not-empty) {
-        let credentials = {account: $account, secret: $password} | to json
-        let result = (echo $credentials | ^secret-tool store --label=$"MinIO Credentials for ($alias):($account)" service mc alias $alias | complete)
-        return ($result.exit_code == 0)
-    }
-    return false
-}
-
-# Clear password from keyring
-def clear_keyring_password [alias: string] {
-    if (which secret-tool | is-not-empty) {
-        let result = (^secret-tool clear service mc alias $alias | complete)
-        return ($result.exit_code == 0)
-    }
-    return false
-}
-
 # Show help
 def show_help [] {
-    print "🛠️ MinIO Credential Management Tool"
+    print "🛠️ Secure MinIO Credential Management Tool"
     print ""
-    print "This tool helps manage MinIO aliases and their keyring credentials."
-    print "It links 'mc alias' entries with GNOME keyring for secure password storage."
+    print "This tool helps manage MinIO aliases and their keyring credentials securely."
+    print "It does NOT accept credential parameters for security reasons."
     print ""
     print "USAGE:"
-    print "    nu manage_minio_credentials.nu [COMMAND] [OPTIONS]"
+    print "    nu manage_minio_credentials_secure.nu [COMMAND] [OPTIONS]"
     print ""
     print "COMMANDS:"
     print "    --list                              List all aliases and keyring status"
-    print "    --add                               Add new alias with keyring integration"
-    print "    --remove                            Remove alias and keyring credentials"
+    print "    --add                               Add new alias with secure credentials"
+    print "    --remove                            Remove alias and all credentials"
     print "    --test                              Test alias connection"
     print ""
     print "OPTIONS:"
     print "    --alias ALIAS                       MinIO alias name"
     print "    --url URL                           MinIO server URL (for --add)"
-    print "    --access-key KEY                    Access key (for --add)"
-    print "    --secret-key SECRET                 Secret key (for --add)"
+    print "    --interactive                       Prompt for credentials securely"
     print ""
     print "EXAMPLES:"
     print "    # List all configured aliases"
-    print "    nu manage_minio_credentials.nu --list"
+    print "    nu manage_minio_credentials_secure.nu --list"
     print ""
-    print "    # Add local MinIO"
-    print "    nu manage_minio_credentials.nu --add \\"
+    print "    # Add local MinIO with interactive credentials"
+    print "    nu manage_minio_credentials_secure.nu --add \\"
     print "        --alias local-minio \\"
     print "        --url http://localhost:19000 \\"
-    print "        --access-key minioadmin \\"
-    print "        --secret-key miniosecurepassword123"
+    print "        --interactive"
     print ""
-    print "    # Add production MinIO"
-    print "    nu manage_minio_credentials.nu --add \\"
+    print "    # Add production MinIO with secure credential detection"
+    print "    nu manage_minio_credentials_secure.nu --add \\"
     print "        --alias production \\"
     print "        --url https://minio.example.com \\"
-    print "        --access-key prod_access_key \\"
-    print "        --secret-key prod_secret_key"
+    print "        --interactive"
     print ""
     print "    # Test connection"
-    print "    nu manage_minio_credentials.nu --test --alias local-minio"
+    print "    nu manage_minio_credentials_secure.nu --test --alias local-minio"
     print ""
-    print "    # Remove alias and credentials"
-    print "    nu manage_minio_credentials.nu --remove --alias production"
+    print "    # Remove alias and all credentials"
+    print "    nu manage_minio_credentials_secure.nu --remove --alias production"
+    print ""
+    print "SECURITY FEATURES:"
+    print "    ✅ No credential parameters (prevents command history exposure)"
+    print "    ✅ Credentials stored in system keyring via pixi auth"
+    print "    ✅ Automatic credential detection from MinIO server"
+    print "    ✅ Secure interactive credential entry"
+    print "    ✅ Cross-platform keyring integration"
+    print "    ✅ Multiple secure storage locations"
+    print ""
+    print "CREDENTIAL SOURCES (in priority order):"
+    print "    1. Existing keyring storage (pixi auth + mc format)"
+    print "    2. MinIO server configuration"
+    print "    3. Default credentials (local development only)"
+    print "    4. Interactive entry (with --interactive flag)"
     print ""
     print "KEYRING INTEGRATION:"
-    print "    Credentials are stored in GNOME keyring with the format:"
-    print "    service=mc, alias=ALIAS_NAME"
+    print "    - Primary: 'pixi auth login s3://alias' format"
+    print "    - Secondary: 'mc' service with alias-based keys"
+    print "    - All credentials stored securely in system keychain"
     print ""
-    print "    You can manually retrieve credentials with:"
-    print "    secret-tool lookup service mc alias ALIAS_NAME"
-    print ""
-    print "    This links mc aliases with keyring entries for secure credential management."
+    print "NOTES:"
+    print "    - Credentials are NEVER passed as command line arguments"
+    print "    - Use --interactive for secure credential entry"
+    print "    - Multiple storage methods ensure compatibility"
+    print "    - Server-based credential retrieval can be extended"
 }

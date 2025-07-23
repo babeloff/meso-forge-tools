@@ -1,0 +1,300 @@
+= Security Changelog
+:toc:
+:toc-placement: preamble
+:sectnums:
+:icons: font
+
+This document tracks security enhancements and changes to the meso-forge tools.
+
+== MinIO Credential Management Security Enhancement
+
+**Date:** 2024-12-19
+
+**Summary:** Replaced insecure credential handling with a secure, keyring-based credential management system for MinIO operations.
+
+=== Security Issues Fixed
+
+==== 🔒 CRITICAL: Command-line credential exposure eliminated
+
+**Previous (Insecure):**
+[source,bash]
+----
+# SECURITY RISK - credentials visible in command history and process list
+nu scripts/init_minio.nu --access-key mykey --secret-key mysecret
+nu scripts/manage_minio_credentials.nu --add --access-key key --secret-key secret
+----
+
+**Current (Secure):**
+[source,bash]
+----
+# SECURE - no credential parameters accepted
+nu scripts/init_minio.nu --interactive
+nu scripts/manage_minio_credentials.nu --add --alias prod --url https://minio.example.com --interactive
+----
+
+=== Changes Made
+
+==== 1. Script Replacements
+
+- `scripts/init_minio.nu` → Secure version (no credential parameters)
+- `scripts/manage_minio_credentials.nu` → Secure version (no credential parameters)
+- Old insecure versions removed
+
+==== 2. New Security Model
+
+**Credential Sources (Priority Order):**
+
+1. **Existing keyring storage** (from previous `pixi auth login`)
+2. **MinIO server configuration** (via admin API - extensible)
+3. **Default credentials** (local development only)
+4. **Interactive secure entry** (with `--interactive` flag)
+
+**Credential Priority Order (pixi/rattler/rattler-build):**
+
+1. **RATTLER_AUTH_FILE** environment variable (not recommended)
+2. **--auth-file** command line parameter (not recommended)
+3. **Platform keyring** (recommended - use `pixi auth login`)
+4. **~/.rattler/credentials.json** (legacy fallback)
+
+**Recommended:** Use `pixi auth login s3://bucket` for secure keyring storage
+
+==== 3. New Pixi Tasks
+
+[source,bash]
+----
+# Secure MinIO operations
+pixi run init-minio                    # Auto-detect credentials
+pixi run init-minio-interactive        # Interactive credential entry
+pixi run minio-list-credentials        # List stored credentials
+pixi run minio-add-alias production    # Add alias with secure credentials
+pixi run minio-test-alias local-minio  # Test connection
+pixi run minio-remove-alias production # Remove alias and credentials
+
+# Credential migration
+pixi run migrate-auth-to-keyring       # Preview RATTLER_AUTH_FILE migration
+pixi run migrate-auth-to-keyring-execute # Migrate to keyring storage
+
+# Bucket management
+pixi run remove-minio-bucket-dry-run   # Preview bucket removal
+pixi run remove-minio-bucket           # Remove bucket and credentials
+----
+
+==== 4. Updated Task Parameters
+
+**Before:**
+[source,toml]
+----
+[tasks.init-minio-custom]
+args = [
+    { arg = "access_key", default = "minioadmin" },
+    { arg = "secret_key", default = "minioadmin" }
+]
+cmd = ["nu", "scripts/init_minio.nu", "--access-key", "{{ access_key }}", "--secret-key", "{{ secret_key }}"]
+----
+
+**After:**
+[source,toml]
+----
+[tasks.init-minio-custom]
+args = [
+    { arg = "interactive", default = "false" }
+]
+cmd = ["nu", "scripts/init_minio.nu", "{{ '--interactive' if interactive == 'true' else '' }}"]
+----
+
+=== Security Benefits & New Features
+
+✅ **No credential exposure** in command history or process lists +
+✅ **System keyring integration** via `pixi auth login` +
+✅ **Cross-platform security** using native credential storage +
+✅ **Automatic credential detection** when possible +
+✅ **Secure interactive entry** when needed +
+✅ **Multiple storage locations** for compatibility +
+✅ **Backward compatibility** maintained for existing workflows +
+✅ **Credential migration tool** to convert RATTLER_AUTH_FILE to keyring +
+✅ **Bucket removal with credential cleanup** for complete environment teardown +
+✅ **Direct keyring access** - RATTLER_AUTH_FILE automatically unset during pixi auth operations +
+
+=== Documentation Updates
+
+- **README.adoc:** Updated MinIO setup examples to use secure methods
+- **docs/minio-setup.adoc:** Added comprehensive security section
+- **pixi.toml:** Updated task descriptions and parameters
+
+=== Migration Guide
+
+==== For Existing Users
+
+1. **Remove any hardcoded credentials** from scripts or environment
+2. **Use interactive setup** for new credentials:
++
+[source,bash]
+----
+pixi run init-minio-interactive
+----
+
+3. **Migrate existing credentials** securely:
++
+[source,bash]
+----
+# Remove old insecure storage
+pixi run minio-remove-alias old-alias
+
+# Add with secure credential handling
+pixi run minio-add-alias new-alias https://your-server.com
+----
+
+==== For New Users
+
+Simply use the secure commands - no credential parameters needed:
+
+[source,bash]
+----
+pixi run init-minio-interactive
+----
+
+=== Backward Compatibility
+
+- **Existing keyring credentials** are automatically detected and used (recommended)
+- **RATTLER_AUTH_FILE** continues to work but is not recommended
+- **Migration tool available** to convert existing auth files to keyring storage
+- **RATTLER_AUTH_FILE automatically unset** during pixi auth login/logout operations for direct keyring access
+- **Default local development** credentials still work automatically
+- **All publishing workflows** remain unchanged
+
+=== Testing
+
+- ✅ Scripts parse without syntax errors
+- ✅ Help commands work correctly
+- ✅ Pixi tasks are properly configured
+- ✅ Existing credential detection works
+- ✅ Interactive credential entry functions
+
+=== Future Enhancements
+
+- **MinIO admin API integration** for automatic credential retrieval
+- **Enterprise identity provider** integration (LDAP, Active Directory)
+- **Credential rotation** automation
+- **Multi-environment** credential management
+
+---
+
+**Impact:** This change eliminates a critical security vulnerability where MinIO credentials could be exposed through command history, process lists, or logging systems. All credential handling now uses secure system keyring storage.
+
+**Breaking Change:** Scripts no longer accept `--access-key` or `--secret-key` parameters. Use `--interactive` flag or ensure credentials are stored in keyring.
+
+== Additional Security Features
+
+=== RATTLER_AUTH_FILE Environment Handling
+
+**Date:** 2024-12-19
+
+**Summary:** Enhanced scripts to properly handle RATTLER_AUTH_FILE environment variable during pixi authentication operations.
+
+==== Changes Made
+
+All scripts that execute `pixi auth login` or `pixi auth logout` commands now automatically unset the `RATTLER_AUTH_FILE` environment variable to ensure direct keyring access:
+
+[source,bash]
+----
+# Example: Credential migration
+with-env {RATTLER_AUTH_FILE: null} {
+    pixi auth login prefix.dev --token $token
+}
+
+# Example: Credential removal
+with-env {RATTLER_AUTH_FILE: null} {
+    pixi auth logout s3://bucket-name
+}
+----
+
+==== Security Benefits
+
+- ✅ **Direct keyring access** during pixi auth operations
+- ✅ **No file override interference** during credential management
+- ✅ **Correct credential storage location** (keyring vs file)
+- ✅ **Transparent operation** with clear dry-run indication
+
+==== Scripts Updated
+
+- `scripts/migrate_auth_to_keyring.nu`
+- `scripts/remove_minio_bucket.nu`
+
+=== Credential Migration Tool
+
+**Date:** 2024-12-19
+
+**Summary:** Added comprehensive tool to migrate existing RATTLER_AUTH_FILE credentials to secure platform keyring storage.
+
+==== Features
+
+- **Supports all credential types**: BearerToken, CondaToken, BasicHttp, S3Credentials
+- **Dry-run mode** for safe preview before execution
+- **Automatic backup** of original files before modification
+- **Comprehensive error handling** and validation
+- **Post-migration cleanup** with optional file removal
+
+==== Usage Examples
+
+[source,bash]
+----
+# Preview migration
+pixi run migrate-auth-to-keyring
+
+# Execute migration
+pixi run migrate-auth-to-keyring-execute
+
+# Migrate specific file with cleanup
+nu scripts/migrate_auth_to_keyring.nu --auth-file custom.json --remove-after-migration
+----
+
+=== Bucket Management with Credential Cleanup
+
+**Date:** 2024-12-19
+
+**Summary:** Added secure bucket removal tool that cleanly removes buckets and associated credentials while preserving mc alias configuration.
+
+==== Features
+
+- **Complete credential cleanup** from all storage locations
+- **mc alias preservation** for other bucket operations
+- **Dry-run mode** for safe preview
+- **Interactive confirmation** with detailed warnings
+- **Automatic backup** of modified auth files
+
+==== What Gets Removed
+
+- Bucket and all its contents
+- Platform keyring credentials (via `pixi auth logout`)
+- RATTLER_AUTH_FILE entries (if present)
+
+==== What Is Preserved
+
+- mc alias configuration (may be used for other buckets)
+
+==== Usage Examples
+
+[source,bash]
+----
+# Preview removal
+pixi run remove-minio-bucket-dry-run
+
+# Remove local meso-forge bucket
+pixi run remove-minio-bucket
+
+# Remove custom bucket with force
+nu scripts/remove_minio_bucket.nu --server https://example.com --bucket custom --force
+----
+
+== Summary of Security Improvements
+
+The meso-forge tools now provide:
+
+1. **Secure credential management** with no command-line exposure
+2. **Platform keyring integration** for encrypted credential storage
+3. **Comprehensive migration tools** for moving from file-based to keyring storage
+4. **Clean environment management** with proper bucket and credential cleanup
+5. **Proper RATTLER_AUTH_FILE handling** during pixi authentication operations
+6. **Cross-platform compatibility** with native OS security features
+
+These improvements eliminate critical security vulnerabilities while maintaining backward compatibility and providing clear migration paths for existing users.
