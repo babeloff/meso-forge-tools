@@ -3,7 +3,6 @@
 # Retract published packages from repositories
 # Usage: nu package_retract.nu <package> --channel <channel> --versions <versions> [--method <pd|s3>] [--target-platform <platform>]
 
-use manifest_utils.nu *
 use std repeat
 
 def main [
@@ -321,7 +320,7 @@ def get-prefix-api-token [channel: string, verbose: bool] {
     let auth_file = $env.RATTLER_AUTH_FILE? | default ""
     if not ($auth_file | is-empty) and ($auth_file | path exists) {
         if $verbose {
-            print $"🔑 Using RATTLER_AUTH_FILE for authentication (not recommended, use keyring): ($auth_file)"
+        print $"🔑 Using RATTLER_AUTH_FILE for authentication \(not recommended, use keyring\): ($auth_file)"
         }
 
         let token = get-token-from-auth-file $auth_file $channel $verbose

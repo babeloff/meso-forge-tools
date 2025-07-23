@@ -28,6 +28,8 @@ pyyaml = ">=6.0.2,<7"
 glib = ">=2.84.0,<3.0"
 glib-tools = ">=2.84.0,<3.0"
 libzlib = ">=1.3.0,<2.0"
+requests = ">=2.32.4,<3"
+semver = ">=3.0.4,<4"
 
 # Platform-specific build dependencies
 [target.linux-64.dependencies]
@@ -40,21 +42,21 @@ gxx_linux-aarch64 = "*"
 
 # Build all packages for current platform
 [tasks.build-all]
-cmd = ["nu", "scripts/build_all.nu"]
+cmd = ["nu", "meso-forge-tooling/scripts/build_all.nu"]
 cwd = "."
 
 # Build specific package types
 [tasks.build-noarch]
-cmd = ["nu", "scripts/build_noarch.nu"]
+cmd = ["nu", "meso-forge-tooling/scripts/build_noarch.nu"]
 cwd = "."
 
 [tasks.build-platform]
-cmd = ["nu", "scripts/build_platform.nu"]
+cmd = ["nu", "meso-forge-tooling/scripts/build_platform.nu"]
 cwd = "."
 
 # Build for all platforms
 [tasks.build-all-platforms]
-cmd = ["nu", "scripts/build_platform.nu", "--all-platforms"]
+cmd = ["nu", "meso-forge-tooling/scripts/build_platform.nu", "--all-platforms"]
 cwd = "."
 
 # Build for specific platform
@@ -62,7 +64,7 @@ cwd = "."
 args = [
    {arg = "platform", default = "linux-64" },
 ]
-cmd = ["nu", "scripts/build_platform.nu", "--platform", "{{ platform }}"]
+cmd = ["nu", "meso-forge-tooling/scripts/build_platform.nu", "--platform", "{{ platform }}"]
 cwd = "."
 
 # Individual package builds (examples)
@@ -70,14 +72,14 @@ cwd = "."
 args = [
    {arg = "pkg", default = "asciidoctor-revealjs" },
 ]
-cmd = ["nu", "scripts/build_single.nu", "--recipe", "pkgs/{{ pkg }}/recipe.yaml"]
+cmd = ["nu", "meso-forge-tooling/scripts/build_single.nu", "--recipe", "pkgs/{{ pkg }}/recipe.yaml"]
 cwd = "."
 
 [tasks.build-dry]
 args = [
    {arg = "pkg", default = "asciidoctor-revealjs" },
 ]
-cmd = ["nu", "scripts/build_single.nu", "--recipe", "pkgs/{{ pkg }}/recipe.yaml", "--dry-run"]
+cmd = ["nu", "meso-forge-tooling/scripts/build_single.nu", "--recipe", "pkgs/{{ pkg }}/recipe.yaml", "--dry-run"]
 cwd = "."
 
 # Clean build artifacts
@@ -87,25 +89,25 @@ cwd = "."
 
 # Lint all recipes
 [tasks.lint-recipes]
-cmd = ["nu", "scripts/lint_recipes.nu"]
+cmd = ["nu", "meso-forge-tooling/scripts/lint_recipes.nu"]
 cwd = "."
 
 [tasks.lint-recipes-fix]
-cmd = ["nu", "scripts/lint_recipes.nu", "--fix"]
+cmd = ["nu", "meso-forge-tooling/scripts/lint_recipes.nu", "--fix"]
 cwd = "."
 
 
 # Test built packages
 [tasks.test-packages]
-cmd = ["nu", "scripts/test_packages.nu"]
+cmd = ["nu", "meso-forge-tooling/scripts/test_packages.nu"]
 cwd = "."
 
 [tasks.test-platform]
-cmd = ["nu", "scripts/test_packages.nu", "--platform"]
+cmd = ["nu", "meso-forge-tooling/scripts/test_packages.nu", "--platform"]
 cwd = "."
 
 [tasks.test-package]
-cmd = ["nu", "scripts/test_packages.nu", "--package"]
+cmd = ["nu", "meso-forge-tooling/scripts/test_packages.nu", "--package"]
 cwd = "."
 
 
@@ -172,7 +174,7 @@ cwd = "."
 # the upload expects the RATTLER_AUTH_FILE variable to be set
 cmd = [
     "nu",
-    "scripts/publish.nu",
+    "meso-forge-tooling/scripts/publish.nu",
     "--mode", "pd",
     "--channel", "{{ channel }}",
     "{{ '--force' if force != '' else '' }}",
@@ -189,7 +191,7 @@ cwd = "."
 # the upload expects the RATTLER_AUTH_FILE variable to be set
 cmd = [
     "nu",
-    "scripts/publish.nu",
+    "meso-forge-tooling/scripts/publish.nu",
     "--mode", "s3",
     "--channel", "{{ channel }}",
     "--url", "{{ url }}",
@@ -206,7 +208,7 @@ args = [
 # the upload expects the RATTLER_AUTH_FILE variable to be set
 cmd = [
     "nu",
-    "scripts/publish.nu",
+    "meso-forge-tooling/scripts/publish.nu",
     "--mode", "s3",
     "--channel", "{{ channel }}",
     "--url", "{{ url }}",
@@ -306,7 +308,7 @@ depends-on = [
 # MinIO initialization tasks
 [tasks.init-minio]
 description = "Initialize local MinIO client for conda packages (secure - auto-detects credentials)"
-cmd = ["nu", "scripts/init_minio.nu"]
+cmd = ["nu", "minio-s3-tools/scripts/init_minio.nu"]
 cwd = "."
 
 [tasks.init-minio-custom]
@@ -317,7 +319,7 @@ args = [
 ]
 description = "Initialize MinIO with custom parameters (secure - no credential args)"
 cmd = [
-    "nu", "scripts/init_minio.nu",
+    "nu", "minio-s3-tools/scripts/init_minio.nu",
     "--url", "{{ url }}",
     "--bucket", "{{ bucket }}",
     "{{ '--interactive' if interactive == 'true' else '' }}"
@@ -327,12 +329,12 @@ cwd = "."
 # New secure MinIO management tasks
 [tasks.init-minio-interactive]
 description = "Initialize MinIO with interactive credential entry (secure)"
-cmd = ["nu", "scripts/init_minio.nu", "--interactive"]
+cmd = ["nu", "minio-s3-tools/scripts/init_minio.nu", "--interactive"]
 cwd = "."
 
 [tasks.minio-list-credentials]
 description = "List all stored MinIO credentials"
-cmd = ["nu", "scripts/manage_minio_credentials.nu", "--list"]
+cmd = ["nu", "minio-s3-tools/scripts/manage_minio_credentials.nu", "--list"]
 cwd = "."
 
 [tasks.minio-add-alias]
@@ -342,7 +344,7 @@ args = [
 ]
 description = "Add new MinIO alias with secure credential handling"
 cmd = [
-    "nu", "scripts/manage_minio_credentials.nu",
+    "nu", "minio-s3-tools/scripts/manage_minio_credentials.nu",
     "--add",
     "--alias", "{{ alias }}",
     "--url", "{{ url }}",
@@ -354,7 +356,7 @@ cwd = "."
 args = [{ arg = "alias", default = "local-minio" }]
 description = "Test MinIO alias connection"
 cmd = [
-    "nu", "scripts/manage_minio_credentials.nu",
+    "nu", "minio-s3-tools/scripts/manage_minio_credentials.nu",
     "--test",
     "--alias", "{{ alias }}"
 ]
@@ -364,7 +366,7 @@ cwd = "."
 args = [{ arg = "alias", default = "local-minio" }]
 description = "Remove MinIO alias and all associated credentials"
 cmd = [
-    "nu", "scripts/manage_minio_credentials.nu",
+    "nu", "minio-s3-tools/scripts/manage_minio_credentials.nu",
     "--remove",
     "--alias", "{{ alias }}"
 ]
@@ -373,7 +375,7 @@ cwd = "."
 [tasks.remove-minio-bucket]
 description = "Remove local MinIO bucket and clean up credentials"
 cmd = [
-    "nu", "scripts/remove_minio_bucket.nu",
+    "nu", "minio-s3-tools/scripts/remove_minio_bucket.nu",
     "--server", "http://localhost:19000",
     "--bucket", "meso-forge",
     "--alias", "local-minio"
@@ -383,7 +385,7 @@ cwd = "."
 [tasks.remove-minio-bucket-dry-run]
 description = "Preview MinIO bucket removal (dry run)"
 cmd = [
-    "nu", "scripts/remove_minio_bucket.nu",
+    "nu", "minio-s3-tools/scripts/remove_minio_bucket.nu",
     "--server", "http://localhost:19000",
     "--bucket", "meso-forge",
     "--alias", "local-minio",
@@ -394,7 +396,7 @@ cwd = "."
 [tasks.migrate-auth-to-keyring]
 description = "Migrate RATTLER_AUTH_FILE credentials to platform keyring (dry run)"
 cmd = [
-    "nu", "scripts/migrate_auth_to_keyring.nu",
+    "nu", "minio-s3-tools/scripts/migrate_auth_to_keyring.nu",
     "--dry-run"
 ]
 cwd = "."
@@ -402,7 +404,7 @@ cwd = "."
 [tasks.migrate-auth-to-keyring-execute]
 description = "Migrate RATTLER_AUTH_FILE credentials to platform keyring"
 cmd = [
-    "nu", "scripts/migrate_auth_to_keyring.nu"
+    "nu", "minio-s3-tools/scripts/migrate_auth_to_keyring.nu"
 ]
 cwd = "."
 

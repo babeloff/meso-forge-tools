@@ -1,6 +1,6 @@
 #!/usr/bin/env nu
 
-use publish_mod.nu [publish get_args announce_pkg show_result]
+use ./publish_mod.nu [publish get_args announce_pkg show_result]
 
 # Publish all packages
 def main [

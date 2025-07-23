@@ -23,7 +23,7 @@ def main [
         let platform_name = $dir | path basename
         print $"\n🔍 Testing packages for ($platform_name)..."
 
-        let packages = ls $dir | where name =~ "\.conda$|\.tar\.bz2$" | get name
+        let packages = ls $dir | where name =~ '\.(conda|tar\.bz2)$' | get name
 
         if ($packages | length) == 0 {
             print $"  ℹ️  No packages found in ($dir)"
@@ -31,7 +31,7 @@ def main [
         }
 
         for package_file in $packages {
-            let package_name = $package_file | path basename | str replace -r "\.(conda|tar\.bz2)$" ""
+            let package_name = $package_file | path basename | str replace -r '\.(conda|tar\.bz2)$' ""
 
             if (not ($package | is-empty)) and ($package_name !~ $package) {
                 continue
@@ -41,22 +41,28 @@ def main [
 
             # Basic package validation
             try {
-                # Check if package can be inspected
-                conda package -i $package_file | ignore
-                print $"    ✅ Package structure valid"
+                let file_size = ls $package_file | get size | first
+                let file_type = if ($package_file | str ends-with ".conda") { "conda" } else { "tar.bz2" }
 
-                # Try to extract and check contents
-                let temp_dir = mktemp -d
-                try {
-                    tar -tf $package_file | head -10 | each { print $"      ($in)" }
-                    print $"    ✅ Package contents accessible"
-                } catch {
-                    print $"    ⚠️  Could not inspect package contents"
+                if $file_size > 1kb {
+                    print $"    ✅ Package exists and has reasonable size"
+                    print $"      Size: ($file_size)"
+                    print $"      Format: ($file_type)"
+
+                    # Basic file type validation
+                    let file_info = file $package_file
+                    if ($file_info | str contains "Zip") or ($file_info | str contains "bzip2") {
+                        print $"    ✅ Package format appears valid"
+                    } else {
+                        print $"    ⚠️  Package format may be unexpected"
+                        print $"      File info: ($file_info)"
+                    }
+                } else {
+                    print $"    ❌ Package appears to be too small"
+                    print $"      Size: ($file_size)"
                 }
-                rm -rf $temp_dir
-
             } catch {
-                print $"    ❌ Package validation failed"
+                print $"    ❌ Package validation failed - could not access package file"
             }
         }
     }

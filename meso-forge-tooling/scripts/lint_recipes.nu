@@ -53,50 +53,33 @@ def main [
 
 # Find all recipe files
 def find_all_recipes [] {
-    find packages -name "recipe.yaml" -type f
+    glob "pkgs/**/recipe.yaml"
 }
 
 # Lint a single recipe file
 def lint_recipe [recipe_path: string] {
-    mut issues = []
-
-    try {
+    let issues_result = try {
         let recipe = open $recipe_path --raw | from yaml
-
-        # Check required fields
-        if ($recipe.package?.name? | is-empty) {
-            $issues = ($issues | append "Missing package.name")
-        }
-
-        if ($recipe.package?.version? | is-empty) {
-            $issues = ($issues | append "Missing package.version")
-        }
-
-        # Check source section
-        if ($recipe.source? | is-empty) {
-            $issues = ($issues | append "Missing source section")
-        }
-
-        # Check build section
-        if ($recipe.build? | is-empty) {
-            $issues = ($issues | append "Missing build section")
-        }
-
-        # Check for common formatting issues
         let content = open $recipe_path --raw
-        if ($content | str contains "\t") {
-            $issues = ($issues | append "Contains tabs (should use spaces)")
-        }
 
-        if ($content | str contains "  \n") {
-            $issues = ($issues | append "Contains trailing whitespace")
-        }
+        let required_issues = [
+            (if ($recipe.package?.name? | is-empty) { "Missing package.name" } else { null }),
+            (if ($recipe.package?.version? | is-empty) { "Missing package.version" } else { null }),
+            (if ($recipe.source? | is-empty) { "Missing source section" } else { null }),
+            (if ($recipe.build? | is-empty) { "Missing build section" } else { null })
+        ] | compact
 
+        let format_issues = [
+            (if ($content | str contains "\t") { "Contains tabs (should use spaces)" } else { null }),
+            (if ($content | str contains "  \n") { "Contains trailing whitespace" } else { null })
+        ] | compact
+
+        $required_issues ++ $format_issues
     } catch {
-        $issues = ($issues | append "Invalid YAML syntax")
+        ["Invalid YAML syntax"]
     }
 
-    $issues
+    $issues_result
 }
 
 # Fix common recipe issues

@@ -12,7 +12,7 @@ from pathlib import Path
 scripts_dir = Path(__file__).parent
 sys.path.insert(0, str(scripts_dir))
 
-from plugins_source import PluginManager
+from __init__ import PluginManager
 
 
 def test_plugin_loading():
