@@ -131,6 +131,10 @@ solve-group = "cpp-build"
 features = ["python-packages", "cpp-packages", "cross-compile"]
 solve-group = "full-build"
 
+[environments.dev]
+features = ["dev-tools"]
+solve-group = "dev"
+
 
 # [tasks.analyze-recipes]
 # cmd = ["python", ".scripts/analyze_recipes.py"]
@@ -298,6 +302,33 @@ cmd = [
 depends-on = [
     { task = "index-s3", args = ["http://localhost:19000", "s3://meso-forge"] }
 ]
+
+# MinIO initialization tasks
+[tasks.init-minio]
+description = "Initialize local MinIO client for conda packages"
+cmd = ["nu", "scripts/init_minio.nu"]
+cwd = "."
+
+[tasks.init-minio-custom]
+args = [
+    { arg = "url", default = "http://localhost:19000" },
+    { arg = "bucket", default = "meso-forge" },
+    { arg = "access_key", default = "minioadmin" },
+    { arg = "secret_key", default = "minioadmin" }
+]
+description = "Initialize MinIO with custom parameters"
+cmd = [
+    "nu", "scripts/init_minio.nu",
+    "--url", "{{ url }}",
+    "--bucket", "{{ bucket }}",
+    "--access-key", "{{ access_key }}",
+    "--secret-key", "{{ secret_key }}"
+]
+cwd = "."
+
+# Development tools feature for local setup
+[feature.dev-tools.dependencies]
+minio = "*"  # MinIO client for local S3-compatible storage
 
 [feature.version-ctl.dependencies]
 python = "3.12.*"

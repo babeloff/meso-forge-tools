@@ -1,0 +1,87 @@
+{
+  "_comment": "Example authentication file for local MinIO setup",
+  "_note": "This file shows the authentication configuration for a local MinIO server",
+  "_usage": [
+    "1. Copy this file to ~/.rattler/credentials.json",
+    "2. Update credentials if you changed the default MinIO access keys",
+    "3. Set RATTLER_AUTH_FILE environment variable: export RATTLER_AUTH_FILE=~/.rattler/credentials.json",
+    "4. Run: pixi run init-minio"
+  ],
+
+  "http://localhost:19000": {
+    "S3Credentials": {
+      "access_key_id": "minioadmin",
+      "secret_access_key": "minioadmin",
+      "session_token": null
+    }
+  },
+
+  "s3://meso-forge": {
+    "S3Credentials": {
+      "access_key_id": "minioadmin",
+      "secret_access_key": "minioadmin",
+      "session_token": null
+    }
+  },
+
+  "_alternative_configurations": {
+    "_comment": "Examples for different MinIO setups",
+
+    "custom_port": {
+      "http://localhost:9000": {
+        "S3Credentials": {
+          "access_key_id": "minioadmin",
+          "secret_access_key": "minioadmin",
+          "session_token": null
+        }
+      }
+    },
+
+    "custom_credentials": {
+      "http://localhost:19000": {
+        "S3Credentials": {
+          "access_key_id": "your_custom_access_key",
+          "secret_access_key": "your_custom_secret_key",
+          "session_token": null
+        }
+      }
+    },
+
+    "remote_minio": {
+      "https://minio.example.com": {
+        "S3Credentials": {
+          "access_key_id": "your_access_key",
+          "secret_access_key": "your_secret_key",
+          "session_token": null
+        }
+      },
+      "s3://my-conda-bucket": {
+        "S3Credentials": {
+          "access_key_id": "your_access_key",
+          "secret_access_key": "your_secret_key",
+          "session_token": null
+        }
+      }
+    },
+
+    "mixed_environment": {
+      "https://prefix.dev": {
+        "BearerToken": "pfx_your_prefix_dev_token"
+      },
+      "http://localhost:19000": {
+        "S3Credentials": {
+          "access_key_id": "minioadmin",
+          "secret_access_key": "minioadmin",
+          "session_token": null
+        }
+      },
+      "s3://production-bucket": {
+        "S3Credentials": {
+          "access_key_id": "prod_access_key",
+          "secret_access_key": "prod_secret_key",
+          "session_token": "temporary_session_token"
+        }
+      }
+    }
+  }
+}

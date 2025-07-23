@@ -24,6 +24,9 @@ pixi global install meso-forge-tooling -c https://prefix.dev/meso-forge
 
 [source,bash]
 ----
+# Configure MinIO client for conda package hosting
+pixi run init-minio
+
 # In a package branch directory
 meso-forge build-all
 meso-forge publish
@@ -45,3 +48,21 @@ git add pkgs/ pixi.toml README.adoc .gitignore .gitattributes
 git commit -m "Create my-domain branch"
 git push -u origin pkgs/my-domain
 ----
+
+== MinIO Client Setup
+
+For development with MinIO S3-compatible storage:
+
+[source,bash]
+----
+# Configure MinIO client for conda packages
+# (assumes MinIO server is already running)
+pixi run init-minio
+
+# Build and publish packages
+pixi run build-all
+pixi run publish-local
+pixi run index-local
+----
+
+See link:docs/minio-setup.adoc[MinIO Client Configuration Guide] for detailed setup options.

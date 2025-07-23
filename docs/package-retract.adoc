@@ -124,8 +124,8 @@ Here's a complete example showing how to retract a problematic package version:
 export PREFIX_API_TOKEN=pfx_your_actual_api_token_here
 
 # Method B: RATTLER_AUTH_FILE (recommended)
-export RATTLER_AUTH_FILE=~/.rattler/auth.json
-# Ensure auth.json contains: {"https://prefix.dev": {"BearerToken": "pfx_your_token"}}
+export RATTLER_AUTH_FILE=~/.rattler/credentials.json
+# Ensure credentials.json contains: {"https://prefix.dev": {"BearerToken": "pfx_your_token"}}
 
 # Method C: Use default auth file locations (no setup needed)
 
@@ -530,7 +530,7 @@ export PREFIX_API_TOKEN=pfx_your_api_token_here
 *Option 2: RATTLER_AUTH_FILE (Recommended)*
 [source,bash]
 ----
-export RATTLER_AUTH_FILE=~/.rattler/auth.json
+export RATTLER_AUTH_FILE=~/.rattler/credentials.json
 ----
 
 The auth file should contain your prefix.dev token in JSON format:
@@ -545,9 +545,9 @@ The auth file should contain your prefix.dev token in JSON format:
 
 *Option 3: Default Locations*
 The script will automatically check these locations:
-- `~/.rattler/auth.json`
+- `~/.rattler/credentials.json`
 - `~/.conda/auth.json`
-- `~/.config/rattler/auth.json`
+- `~/.config/rattler/credentials.json`
 
 You can obtain your API token from your prefix.dev account settings (User Icon → Settings → API Keys).
 Prefix.dev API tokens always start with `pfx_`.

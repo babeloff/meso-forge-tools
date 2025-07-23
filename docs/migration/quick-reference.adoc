@@ -143,7 +143,7 @@ pixi run test
 [source,bash]
 ----
 # Set up authentication (one time)
-export RATTLER_AUTH_FILE=~/.rattler-auth.json
+export RATTLER_AUTH_FILE=~/.rattler/credentials.json
 
 # Build and publish
 pixi run build-all

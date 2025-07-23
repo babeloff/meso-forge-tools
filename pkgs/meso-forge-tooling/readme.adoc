@@ -239,7 +239,7 @@ meso-forge test
 [source,bash]
 ----
 # Set up authentication
-export RATTLER_AUTH_FILE=~/.rattler-auth.json
+export RATTLER_AUTH_FILE=~/.rattler/credentials.json
 
 # Publish to prefix.dev
 meso-forge publish-pd

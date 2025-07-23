@@ -331,9 +331,9 @@ def get-prefix-api-token [channel: string, verbose: bool] {
 
     # Try default auth file locations
     let default_auth_files = [
-        ($env.HOME | path join ".rattler" "auth.json"),
+        ($env.HOME | path join ".rattler" "credentials.json"),
         ($env.HOME | path join ".conda" "auth.json"),
-        ($env.XDG_CONFIG_HOME? | default ($env.HOME | path join ".config") | path join "rattler" "auth.json")
+        ($env.XDG_CONFIG_HOME? | default ($env.HOME | path join ".config") | path join "rattler" "credentials.json")
     ]
 
     for auth_file in $default_auth_files {

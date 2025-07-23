@@ -1,0 +1,1027 @@
+= MinIO Setup Guide for meso-forge conda packages
+:toc:
+:repository: https://github.com/phreed/meso-forge-tools
+
+This comprehensive guide explains how to set up MinIO for conda package hosting with the meso-forge toolchain, including secure credential storage, authentication configuration, and complete workflow integration.
+
+== Overview
+
+The meso-forge tools provide complete MinIO integration for S3-compatible conda package storage with:
+
+* **Secure Credential Storage**: System keychain/keyring integration via pixi authentication
+* **Cross-platform Authentication**: Works seamlessly across all platforms using pixi
+* **Automated Configuration**: Complete MinIO client setup with one command
+* **Workflow Integration**: Seamless build, publish, and indexing processes
+* **Security Best Practices**: Secure credential management with minimal exposure
+
+== Prerequisites
+
+=== Required Tools
+
+Before setting up MinIO, ensure you have the required tools:
+
+[source,bash]
+----
+# MinIO client (mc) - Choose one installation method:
+conda install -c conda-forge minio
+# OR
+pixi add minio
+# OR activate the dev environment:
+pixi shell -e dev
+
+# Verify installation
+mc --version
+----
+
+=== MinIO Server Access
+
+You need access to a running MinIO server:
+
+==== Local Development Server (Recommended for Development)
+
+[source,bash]
+----
+# Start local MinIO server with Docker
+docker run -d \
+  --name minio-conda \
+  -p 19000:9000 \
+  -p 19001:9001 \
+  -e MINIO_ROOT_USER=minioadmin \
+  -e MINIO_ROOT_PASSWORD=minioadmin \
+  -v minio-data:/data \
+  minio/minio server /data --console-address ':9001'
+
+# Verify server is running
+curl http://localhost:19000/minio/health/live
+
+# Access web console at http://localhost:19001
+# Default credentials: minioadmin/minioadmin
+----
+
+==== Remote MinIO Server
+
+For production deployments, point to an existing MinIO instance:
+- URL: `https://minio.example.com`
+- Access credentials provided by your administrator
+
+== 🔐 Secure Credential Storage
+
+**NEW**: The meso-forge tools now use `pixi auth login s3://bucket` for secure credential storage, leveraging your system's native keychain/keyring infrastructure.
+
+=== Security Hierarchy
+
+The tools use this security hierarchy (best to least secure):
+
+1. **`pixi auth login s3://bucket`** - Primary and preferred method for cross-platform secure storage
+2. **RATTLER_AUTH_FILE** - Only as a fallback when pixi is unavailable (⚠️ less secure)
+
+**Simplified Approach:** We now rely exclusively on `pixi auth login` for secure credential storage, as it automatically handles system keychain integration without requiring platform-specific code.
+
+**Why S3 bucket format?** Using `pixi auth login s3://bucket-name` ensures credentials are stored in your system's secure keychain with the proper S3 authentication format that rattler-based tools expect.
+
+=== Quick Setup with Secure Storage
+
+[source,bash]
+----
+# Initialize MinIO with secure credential storage
+pixi run init-minio
+
+# The script will:
+# 1. Use `pixi auth login s3://meso-forge` for secure S3 credential storage
+# 2. Fall back to RATTLER_AUTH_FILE only if pixi is unavailable
+# 3. Provide clear feedback about where credentials are stored
+# 4. Verify storage (on Linux, uses secret-tool for confirmation)
+----
+
+=== Verify Secure Storage
+
+After initialization, verify your credentials are stored securely:
+
+[source,bash]
+----
+# Check what credentials are stored
+pixi run init-minio -- --list-credentials
+
+# In GUI applications, search for "s3://" or "pixi" in your system's credential manager
+
+# Command line verification:
+# Check if credentials are stored via pixi
+pixi auth logout s3://meso-forge  # This will show if credentials exist
+
+# On Linux, verify with secret-tool:
+secret-tool search service pixi
+----
+
+== Configuration
+
+=== Automated Setup (Recommended)
+
+Use the initialization script for complete automated setup:
+
+[source,bash]
+----
+# Using defaults (local MinIO server at localhost:19000)
+pixi run init-minio
+
+# With custom parameters
+pixi run init-minio-custom \
+  url=https://minio.example.com:9000 \
+  bucket=my-conda-channel \
+  access_key=myaccesskey \
+  secret_key=mysecretkey
+
+# The script automatically:
+# - Checks prerequisites (mc client, server connectivity)
+# - Configures MinIO client alias
+# - Creates bucket with appropriate policies
+# - Sets up secure authentication
+# - Tests the configuration
+----
+
+=== Configuration Options
+
+==== Environment Variables
+
+[cols="1,1,2"]
+|===
+|Variable |Default |Description
+
+|`MINIO_URL`
+|`http://localhost:19000`
+|MinIO server URL
+
+|`MINIO_ACCESS_KEY`
+|`minioadmin`
+|MinIO access key
+
+|`MINIO_SECRET_KEY`
+|`minioadmin`
+|MinIO secret key
+
+|`MINIO_BUCKET`
+|`meso-forge`
+|Bucket name for conda packages
+
+|`MINIO_CHANNEL`
+|`s3://meso-forge`
+|Channel name for authentication
+
+|`MINIO_ALIAS`
+|`local-minio`
+|MinIO client alias
+|===
+
+==== Command Line Configuration
+
+[source,bash]
+----
+# Direct script execution with custom parameters
+nu scripts/init_minio.nu \
+  --url https://minio.example.com:9000 \
+  --access-key mykey \
+  --secret-key mysecret \
+  --bucket my-conda \
+  --alias production-minio
+----
+
+=== Manual Configuration
+
+If you prefer manual setup or need custom configuration:
+
+[source,bash]
+----
+# 1. Configure MinIO client alias
+mc alias set local-minio http://localhost:19000 minioadmin minioadmin
+
+# 2. Create bucket for conda packages
+mc mb local-minio/meso-forge
+
+# 3. Set public read policy for conda access
+cat > /tmp/conda-policy.json << EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": ["s3:GetObject"],
+      "Resource": ["arn:aws:s3:::meso-forge/*"]
+    },
+    {
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": ["s3:ListBucket"],
+      "Resource": ["arn:aws:s3:::meso-forge"]
+    }
+  ]
+}
+EOF
+
+mc policy set-json /tmp/conda-policy.json local-minio/meso-forge
+rm /tmp/conda-policy.json
+
+# 4. Test configuration
+mc ls local-minio/meso-forge/
+----
+
+== Authentication Configuration
+
+=== Modern Secure Authentication (Recommended)
+
+The initialization script automatically configures secure authentication using system keychains. This is the **preferred method** for security.
+
+[source,bash]
+----
+# Initialize with secure credential storage
+pixi run init-minio
+
+# Credentials are automatically stored in:
+# - System keychain via pixi authentication
+# - Fallback: RATTLER_AUTH_FILE (with warning)
+# - Linux verification: secret-tool search service pixi
+----
+
+=== RATTLER_AUTH_FILE Configuration
+
+If secure storage is not available, the system falls back to RATTLER_AUTH_FILE:
+
+[source,json]
+----
+{
+  "_comment": "Authentication for meso-forge conda toolchain",
+  "http://localhost:19000": {
+    "S3Credentials": {
+      "access_key_id": "minioadmin",
+      "secret_access_key": "minioadmin",
+      "session_token": null
+    }
+  },
+  "s3://meso-forge": {
+    "S3Credentials": {
+      "access_key_id": "minioadmin",
+      "secret_access_key": "minioadmin",
+      "session_token": null
+    }
+  }
+}
+----
+
+=== Legacy Environment Variables
+
+For compatibility or CI/CD systems that don't support secure storage:
+
+[source,bash]
+----
+export AWS_ACCESS_KEY_ID=minioadmin
+export AWS_SECRET_ACCESS_KEY=minioadmin
+export AWS_ENDPOINT_URL=http://localhost:19000
+----
+
+=== Authentication for Multiple Services
+
+For complex environments with multiple package repositories:
+
+[source,json]
+----
+{
+  "_comment": "Multi-service authentication configuration",
+
+  "https://prefix.dev": {
+    "BearerToken": "pfx_your_prefix_dev_token"
+  },
+
+  "https://anaconda.org": {
+    "BearerToken": "your_anaconda_org_token"
+  },
+
+  "http://localhost:19000": {
+    "S3Credentials": {
+      "access_key_id": "minioadmin",
+      "secret_access_key": "minioadmin",
+      "session_token": null
+    }
+  },
+
+  "https://production-minio.company.com": {
+    "S3Credentials": {
+      "access_key_id": "prod_access_key",
+      "secret_access_key": "prod_secret_key",
+      "session_token": null
+    }
+  },
+
+  "s3://company-conda-packages": {
+    "S3Credentials": {
+      "access_key_id": "aws_access_key",
+      "secret_access_key": "aws_secret_key",
+      "session_token": "aws_session_token"
+    }
+  }
+}
+----
+
+== Credential Management
+
+=== Listing Stored Credentials
+
+[source,bash]
+----
+# Check stored credentials
+pixi run init-minio -- --list-credentials
+
+# Or use the test script
+nu scripts/test_credentials.nu --list-credentials
+
+# Direct verification:
+# Try to logout (will show if credentials exist)
+pixi auth logout s3://meso-forge
+
+# GUI verification:
+# Search "pixi" or "s3://" in your system's credential manager
+# Linux verification: secret-tool search service pixi
+
+# Linux command line verification:
+secret-tool search service pixi
+----
+
+=== Removing Stored Credentials
+
+[source,bash]
+----
+# Remove all MinIO credentials
+pixi run init-minio -- --remove-credentials
+
+# Or use the test script
+nu scripts/test_credentials.nu --remove-credentials
+
+# Manual removal via pixi (recommended):
+pixi auth logout s3://meso-forge           # Remove S3 bucket credentials
+pixi auth logout s3://rattler-credentials  # Remove generic credentials
+pixi auth logout localhost                 # Remove hostname-based credentials
+pixi auth logout localhost:19000           # Remove port-specific credentials
+
+# Manual removal:
+# Use your system's credential manager GUI (search "pixi" or "s3://")
+# Linux verification: secret-tool search service pixi
+----
+
+=== Testing Credential Storage
+
+[source,bash]
+----
+# Test credential storage without full MinIO setup
+nu scripts/test_credentials.nu
+
+# Test with custom credentials
+nu scripts/test_credentials.nu \
+  --access-key mykey \
+  --secret-key mysecret \
+  --url https://my-minio.com
+----
+
+== Package Management Workflow
+
+=== Building and Publishing
+
+After MinIO is configured, use these workflows:
+
+[source,bash]
+----
+# Complete workflow
+pixi run build-all          # Build all packages
+pixi run publish-local      # Publish to configured MinIO
+pixi run index-local        # Update channel index
+
+# Selective workflows
+pixi run build-noarch       # Build only noarch packages
+pixi run build-platform     # Build platform-specific packages
+pixi run publish-s3         # Publish to remote S3/MinIO
+----
+
+=== Using the Conda Channel
+
+Add the MinIO channel to your conda/mamba configuration:
+
+[source,bash]
+----
+# Add to global conda config
+conda config --add channels http://localhost:19000/meso-forge
+
+# Use with specific commands
+conda install -c http://localhost:19000/meso-forge my-package
+mamba install -c http://localhost:19000/meso-forge my-package
+
+# Add to pixi.toml
+channels = ["http://localhost:19000/meso-forge", "conda-forge"]
+
+# Add to environment.yml
+channels:
+  - http://localhost:19000/meso-forge
+  - conda-forge
+dependencies:
+  - my-package
+----
+
+=== Package Management
+
+[source,bash]
+----
+# List packages in channel
+mc ls local-minio/meso-forge/
+
+# List by platform
+mc ls local-minio/meso-forge/linux-64/
+mc ls local-minio/meso-forge/noarch/
+
+# Download package manually
+mc cp local-minio/meso-forge/linux-64/my-package-1.0.0-py311_0.conda ./
+
+# Remove specific package
+mc rm local-minio/meso-forge/linux-64/old-package-0.9.0-py310_0.conda
+----
+
+== Advanced Configuration
+
+=== Custom Bucket Policies
+
+For more restrictive access control:
+
+[source,json]
+----
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": ["arn:aws:iam::123456789012:user/conda-read-user"]
+      },
+      "Action": ["s3:GetObject", "s3:ListBucket"],
+      "Resource": [
+        "arn:aws:s3:::meso-forge",
+        "arn:aws:s3:::meso-forge/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": ["arn:aws:iam::123456789012:user/conda-write-user"]
+      },
+      "Action": ["s3:*"],
+      "Resource": [
+        "arn:aws:s3:::meso-forge",
+        "arn:aws:s3:::meso-forge/*"
+      ]
+    }
+  ]
+}
+----
+
+=== HTTPS Configuration
+
+For production deployments with HTTPS:
+
+[source,bash]
+----
+# Example with Let's Encrypt certificates
+certbot certonly --standalone -d minio.yourdomain.com
+
+# Start MinIO with HTTPS
+MINIO_ROOT_USER=admin \
+MINIO_ROOT_PASSWORD=secure-password \
+minio server ~/minio-data \
+  --address :443 \
+  --console-address :9001 \
+  --certs-dir ~/.minio/certs
+----
+
+=== Multi-User Setup
+
+Create users with different access levels:
+
+[source,bash]
+----
+# Create policies
+cat > readonly-policy.json << EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:ListBucket"],
+      "Resource": [
+        "arn:aws:s3:::meso-forge",
+        "arn:aws:s3:::meso-forge/*"
+      ]
+    }
+  ]
+}
+EOF
+
+cat > readwrite-policy.json << EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:*"],
+      "Resource": [
+        "arn:aws:s3:::meso-forge",
+        "arn:aws:s3:::meso-forge/*"
+      ]
+    }
+  ]
+}
+EOF
+
+# Add policies
+mc admin policy add local-minio readonly readonly-policy.json
+mc admin policy add local-minio readwrite readwrite-policy.json
+
+# Create users
+mc admin user add local-minio readonly-user readonly-password
+mc admin user add local-minio ci-user ci-password
+mc admin user add local-minio developer developer-password
+
+# Assign policies
+mc admin policy set local-minio readonly user=readonly-user
+mc admin policy set local-minio readwrite user=ci-user
+mc admin policy set local-minio readwrite user=developer
+----
+
+== Security Best Practices
+
+=== Credential Security
+
+1. **Use Secure Storage**: Always prefer system keychain over RATTLER_AUTH_FILE
+2. **Rotate Credentials**: Regularly update access keys
+3. **Principle of Least Privilege**: Give users only necessary permissions
+4. **Monitor Access**: Enable audit logging
+
+[source,bash]
+----
+# Check current credential storage method
+pixi run init-minio -- --list-credentials
+
+# If using RATTLER_AUTH_FILE, ensure proper permissions
+chmod 600 ~/.rattler/credentials.json
+
+# Regular credential rotation
+nu scripts/init_minio.nu \
+  --access-key new-access-key \
+  --secret-key new-secret-key
+----
+
+=== Production Security
+
+For production deployments:
+
+[source,bash]
+----
+# 1. Use strong credentials
+export MINIO_ROOT_USER=secure-admin-username
+export MINIO_ROOT_PASSWORD=very-secure-password-123
+
+# 2. Enable HTTPS
+# Configure TLS certificates and reverse proxy
+
+# 3. Restrict network access
+# Use firewall rules, VPN, or private networks
+
+# 4. Enable audit logging
+mc admin config set local-minio audit webhook:1 \
+  endpoint="https://your-log-server.com/audit"
+
+# 5. Regular backups
+mc mirror local-minio/meso-forge s3://backup-bucket/meso-forge/
+----
+
+=== Access Control Lists
+
+Implement fine-grained access control:
+
+[source,bash]
+----
+# Create service accounts for different purposes
+mc admin user add local-minio ci-publish-user ci-publish-password
+mc admin user add local-minio read-only-user read-only-password
+mc admin user add local-minio backup-user backup-password
+
+# Assign appropriate policies
+mc admin policy set local-minio readwrite user=ci-publish-user
+mc admin policy set local-minio readonly user=read-only-user
+mc admin policy set local-minio backup user=backup-user
+----
+
+== Troubleshooting
+
+=== Common Issues
+
+==== MinIO Server Not Accessible
+
+[source,bash]
+----
+# Check server status
+curl http://localhost:19000/minio/health/live
+
+# Check if port is in use
+netstat -tlnp | grep :19000
+
+# Test with different URL formats
+mc alias set test-minio http://127.0.0.1:19000 minioadmin minioadmin
+mc alias set test-minio http://localhost:19000 minioadmin minioadmin
+----
+
+==== Authentication Failures
+
+[source,bash]
+----
+# Check stored credentials
+pixi run init-minio -- --list-credentials
+
+# Test authentication manually
+mc alias set test-auth http://localhost:19000 minioadmin minioadmin
+mc ls test-auth/
+
+# Verify RATTLER_AUTH_FILE if using fallback
+cat ~/.rattler/credentials.json | jq .
+chmod 600 ~/.rattler/credentials.json
+----
+
+=== Secure Storage Issues
+
+[source,bash]
+----
+# Test credential storage directly
+nu scripts/test_credentials.nu
+
+# Check if pixi auth is working
+pixi auth logout s3://meso-forge  # Shows if credentials exist
+pixi auth login s3://test --s3-access-key-id test --s3-secret-access-key test
+
+# Verify secure storage:
+# Check GUI credential managers for "s3://" or "pixi" entries
+# Linux verification: secret-tool search service pixi
+----
+
+==== Permission Denied Errors
+
+[source,bash]
+----
+# Check bucket policies
+mc policy get local-minio/meso-forge
+
+# Reset to public read if needed
+mc policy set public local-minio/meso-forge
+
+# Verify user permissions
+mc admin user info local-minio username
+----
+
+==== Network Connectivity
+
+[source,bash]
+----
+# Test basic connectivity
+ping localhost
+telnet localhost 19000
+
+# Check firewall settings
+sudo ufw status
+sudo iptables -L
+
+# Test with curl
+curl -v http://localhost:19000/minio/health/live
+----
+
+=== Debug Mode
+
+Enable detailed logging for troubleshooting:
+
+[source,bash]
+----
+# Script debugging
+nu scripts/init_minio.nu --url http://localhost:19000 | debug
+
+# MinIO client debugging
+mc --debug ls local-minio/
+
+# Rattler tools debugging
+rattler-index s3 s3://meso-forge \
+  --endpoint-url http://localhost:19000 \
+  --log-level debug \
+  --force-path-style
+
+# Test credential storage
+nu scripts/test_credentials.nu --help
+----
+
+=== Performance Issues
+
+[source,bash]
+----
+# Check storage performance
+mc admin info local-minio
+
+# Monitor resource usage
+mc admin prometheus metrics local-minio
+
+# Test upload/download speed
+mc cp large-file.tar.gz local-minio/meso-forge/test/
+time mc cp local-minio/meso-forge/test/large-file.tar.gz ./test-download.tar.gz
+----
+
+== CI/CD Integration
+
+=== GitHub Actions
+
+[source,yaml]
+----
+name: Build and Publish Conda Packages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Pixi
+      uses: prefix-dev/setup-pixi@v0.5.1
+
+    - name: Configure MinIO
+      run: |
+        pixi run init-minio-custom \
+          url=${{ secrets.MINIO_URL }} \
+          access_key=${{ secrets.MINIO_ACCESS_KEY }} \
+          secret_key=${{ secrets.MINIO_SECRET_KEY }} \
+          bucket=${{ vars.MINIO_BUCKET }}
+
+    - name: Build packages
+      run: pixi run build-all
+
+    - name: Publish packages
+      if: github.ref == 'refs/heads/main'
+      run: |
+        pixi run publish-s3
+        pixi run index-s3
+----
+
+=== GitLab CI
+
+[source,yaml]
+----
+stages:
+  - build
+  - publish
+
+variables:
+  MINIO_BUCKET: "meso-forge"
+
+build-packages:
+  stage: build
+  script:
+    - pixi run init-minio-custom
+        url=$MINIO_URL
+        access_key=$MINIO_ACCESS_KEY
+        secret_key=$MINIO_SECRET_KEY
+        bucket=$MINIO_BUCKET
+    - pixi run build-all
+  artifacts:
+    paths:
+      - output/
+    expire_in: 1 hour
+
+publish-packages:
+  stage: publish
+  dependencies:
+    - build-packages
+  script:
+    - pixi run publish-s3
+    - pixi run index-s3
+  only:
+    - main
+----
+
+=== Local Development Script
+
+[source,bash]
+----
+#!/bin/bash
+# dev-workflow.sh - Complete local development setup
+
+set -euo pipefail
+
+echo "🚀 Setting up meso-forge development environment..."
+
+# Start local MinIO server if not running
+if ! curl -s http://localhost:19000/minio/health/live >/dev/null; then
+    echo "🔧 Starting local MinIO server..."
+    docker run -d \
+        --name minio-dev \
+        -p 19000:9000 \
+        -p 19001:9001 \
+        -e MINIO_ROOT_USER=minioadmin \
+        -e MINIO_ROOT_PASSWORD=minioadmin \
+        -v minio-dev-data:/data \
+        minio/minio server /data --console-address ':9001'
+
+    # Wait for server to start
+    sleep 5
+fi
+
+# Configure MinIO client with secure credentials
+echo "🔐 Configuring MinIO client with secure credentials..."
+pixi run init-minio
+
+# Build and publish packages
+echo "📦 Building packages..."
+pixi run build-all
+
+echo "🚀 Publishing to local MinIO..."
+pixi run publish-local
+
+echo "📋 Indexing channel..."
+pixi run index-local
+
+echo "✅ Development environment ready!"
+echo "📍 MinIO Console: http://localhost:19001"
+echo "📍 Conda Channel: http://localhost:19000/meso-forge"
+echo ""
+echo "Add to conda config:"
+echo "  conda config --add channels http://localhost:19000/meso-forge"
+echo ""
+echo "Add to pixi.toml:"
+echo '  channels = ["http://localhost:19000/meso-forge", "conda-forge"]'
+----
+
+== Performance Optimization
+
+=== Storage Configuration
+
+[source,bash]
+----
+# Use high-performance storage
+docker run -d \
+  --name minio-optimized \
+  -p 19000:9000 \
+  -p 19001:9001 \
+  -e MINIO_ROOT_USER=minioadmin \
+  -e MINIO_ROOT_PASSWORD=minioadmin \
+  -v /fast-nvme/minio-data:/data \
+  minio/minio server /data \
+    --console-address ':9001' \
+    --address ':9000'
+
+# Configure performance settings
+mc admin config set local-minio cache drives="/tmp/minio-cache"
+mc admin config set local-minio cache_quota="2GB"
+----
+
+=== Client-Side Caching
+
+[source,bash]
+----
+# Configure conda caching
+conda config --set local_repodata_ttl 3600
+conda config --set remote_read_timeout_secs 30
+
+# Configure mamba caching
+mamba config --set local_repodata_ttl 3600
+mamba config --set remote_read_timeout_secs 30
+
+# Use conda-libmamba-solver for faster operations
+conda install conda-libmamba-solver
+conda config --set solver libmamba
+----
+
+=== Reverse Proxy Configuration
+
+Example nginx configuration for production:
+
+[source,nginx]
+----
+upstream minio {
+    server 127.0.0.1:9000;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name minio.yourdomain.com;
+
+    ssl_certificate /etc/letsencrypt/live/minio.yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/minio.yourdomain.com/privkey.pem;
+
+    client_max_body_size 100M;
+
+    location / {
+        proxy_pass http://minio;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Important for conda clients
+        proxy_buffering off;
+        proxy_request_buffering off;
+    }
+}
+----
+
+== Migration and Backup
+
+=== Migrating from Other Storage
+
+[source,bash]
+----
+# Migrate from local directory
+mc mirror ./conda-packages/ local-minio/meso-forge/
+
+# Migrate from S3
+mc mirror s3://old-bucket/conda-packages/ local-minio/meso-forge/
+
+# Migrate from HTTP server
+wget -r -np -nH --cut-dirs=1 http://old-server.com/conda/
+mc mirror ./conda/ local-minio/meso-forge/
+----
+
+=== Backup Strategies
+
+[source,bash]
+----
+# Regular backup to S3
+mc mirror local-minio/meso-forge/ s3://backup-bucket/meso-forge-backup/
+
+# Backup to another MinIO instance
+mc mirror local-minio/meso-forge/ backup-minio/meso-forge/
+
+# Scheduled backup script
+#!/bin/bash
+# backup-conda.sh
+DATE=$(date +%Y%m%d_%H%M%S)
+mc mirror local-minio/meso-forge/ s3://backups/conda-backup-$DATE/
+----
+
+== Related Documentation
+
+- link:authentication.adoc[Detailed Authentication Guide]
+- link:package-retract.adoc[Package Retraction Guide]
+- link:../README.adoc[Main Project README]
+- link:https://min.io/docs[MinIO Documentation]
+- link:https://rattler.build/latest/[rattler-build Documentation]
+- link:https://pixi.sh/latest/[pixi Documentation]
+- link:https://prefix.dev/docs[prefix.dev Documentation]
+
+== Quick Reference
+
+=== Essential Commands
+
+[source,bash]
+----
+# Setup
+pixi run init-minio                    # Initialize with secure credentials
+pixi run init-minio -- --list-credentials  # List stored credentials
+pixi run init-minio -- --remove-credentials # Remove credentials
+
+# Workflow
+pixi run build-all                     # Build packages
+pixi run publish-local                 # Publish locally
+pixi run index-local                   # Index channel
+
+# Credential Management
+nu scripts/test_credentials.nu         # Test credential storage
+pixi auth logout s3://meso-forge       # Remove S3 bucket credentials
+pixi auth login s3://test --help       # See pixi auth options
+mc ls local-minio/meso-forge/          # List packages
+----
+
+=== Configuration Files
+
+[source,bash]
+----
+# Secure credential storage locations:
+# System keychain via pixi authentication (search "pixi" or "s3://")
+# Linux verification: secret-tool search service pixi
+
+# Fallback authentication file:
+~/.rattler/credentials.json
+
+# MinIO client configuration:
+~/.mc/config.json
+----
+
+=== Troubleshooting Checklist
+
+- [ ] MinIO server is running and accessible
+- [ ] Credentials are stored securely (check with `--list-credentials`)
+- [ ] Network connectivity to MinIO server
+- [ ] Bucket exists with correct permissions
+- [ ] Authentication file has correct format and permissions
+- [ ] MinIO client (`mc`) is installed and working
