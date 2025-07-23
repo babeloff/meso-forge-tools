@@ -1,0 +1,240 @@
+= MinIO S3 Tools Package
+:toc:
+:repository: https://github.com/phreed/meso-forge-tools
+
+This package provides secure credential management and bucket operations for MinIO S3-compatible storage used with conda package repositories.
+
+== Overview
+
+The `minio-s3-tools` package contains specialized tooling for working with MinIO as an S3-compatible conda package repository. It focuses on secure credential management, automated configuration, and seamless workflow integration.
+
+== Features
+
+=== Core Tools
+
+* **init-minio**: Configure MinIO client for conda package hosting with secure credential handling
+* **manage-minio-credentials**: Add, list, test, and remove MinIO aliases and credentials
+* **remove-minio-bucket**: Clean bucket removal with credential cleanup
+
+=== Security Features
+
+* **No Command-Line Credentials**: No credential parameters accepted via command line (prevents security risks)
+* **Keyring Integration**: Uses system keychain/keyring via pixi authentication for secure storage
+* **Interactive Entry**: Secure credential prompting when needed
+* **Cross-Platform**: Works seamlessly across all platforms using pixi authentication
+* **Automatic Detection**: Auto-detects existing credentials from MinIO server configuration
+
+== Installation
+
+[source,bash]
+----
+# Install via conda
+conda install -c your-channel minio-s3-tools
+
+# Or via pixi
+pixi add minio-s3-tools
+----
+
+== Quick Start
+
+=== Initialize Local MinIO
+
+[source,bash]
+----
+# Initialize with default settings (secure auto-detection)
+init-minio
+
+# Initialize with custom settings
+init-minio --url http://localhost:19000 --bucket my-bucket --interactive
+
+# Initialize with interactive credential entry
+init-minio --interactive
+----
+
+=== Manage Credentials
+
+[source,bash]
+----
+# List all stored MinIO credentials
+manage-minio-credentials --list
+
+# Add production server with secure credential entry
+manage-minio-credentials --add --alias production --url https://minio.example.com --interactive
+
+# Test connection
+manage-minio-credentials --test --alias local-minio
+
+# Remove credentials
+manage-minio-credentials --remove --alias production
+----
+
+=== Bucket Management
+
+[source,bash]
+----
+# Remove bucket (with confirmation)
+remove-minio-bucket --server http://localhost:19000 --bucket my-bucket
+
+# Preview removal (dry run)
+remove-minio-bucket --server http://localhost:19000 --bucket my-bucket --dry-run
+
+# Force removal (skip confirmations)
+remove-minio-bucket --server http://localhost:19000 --bucket my-bucket --force
+----
+
+== Command Reference
+
+=== init-minio
+
+Securely configure MinIO client for conda package hosting.
+
+[source,bash]
+----
+init-minio [OPTIONS]
+
+Options:
+  --url TEXT         MinIO server URL [default: http://localhost:19000]
+  --bucket TEXT      Bucket name [default: pixi-local]
+  --channel TEXT     Channel name [default: s3://pixi-local/meso-forge]
+  --alias TEXT       MinIO client alias [default: local-minio]
+  --interactive      Prompt for credentials if not found
+  --list-credentials List stored credentials
+  --remove-credentials Remove stored credentials
+  --help             Show help message
+----
+
+=== manage-minio-credentials
+
+Manage MinIO aliases and their corresponding keyring credentials.
+
+[source,bash]
+----
+manage-minio-credentials [OPTIONS]
+
+Options:
+  --list                    List all MinIO aliases and their keyring status
+  --add                     Add new MinIO alias with secure credentials
+  --remove                  Remove MinIO alias and keyring credentials
+  --test                    Test MinIO alias connection
+  --alias TEXT              MinIO alias name
+  --url TEXT                MinIO server URL (for --add)
+  --interactive             Prompt for credentials interactively
+  --help                    Show help message
+----
+
+=== remove-minio-bucket
+
+Remove MinIO bucket and clean up associated credentials.
+
+[source,bash]
+----
+remove-minio-bucket [OPTIONS]
+
+Options:
+  --server TEXT      MinIO server URL [default: http://localhost:19000]
+  --bucket TEXT      Bucket name to remove [default: meso-forge]
+  --alias TEXT       MinIO client alias [default: local-minio]
+  --dry-run          Show what would be done without executing
+  --force            Skip confirmation prompts
+  --help             Show help message
+----
+
+== Configuration
+
+The tools support various configuration methods:
+
+=== Environment Variables
+
+[source,bash]
+----
+export MINIO_URL="http://localhost:19000"
+export MINIO_BUCKET="my-bucket"
+export MINIO_ALIAS="my-alias"
+----
+
+=== Credential Storage
+
+Credentials are stored securely using:
+
+* **System Keyring**: Platform-native credential storage (recommended)
+* **Pixi Authentication**: Integrated with pixi's secure authentication system
+* **MinIO Client Config**: Standard mc configuration when available
+
+== Security Model
+
+The tools follow strict security practices:
+
+1. **No CLI Credentials**: Never accept sensitive credentials as command-line parameters
+2. **Secure Storage**: All credentials stored in system keychain/keyring
+3. **Interactive Entry**: Secure prompting for credential input when needed
+4. **Auto-Detection**: Prefer existing secure credential sources
+5. **Minimal Exposure**: Credentials never logged or displayed in plain text
+
+== Integration
+
+=== With meso-forge-tooling
+
+The tools integrate seamlessly with the broader meso-forge ecosystem:
+
+[source,bash]
+----
+# Initialize MinIO for conda package hosting
+init-minio
+
+# Build and publish packages (using configured MinIO)
+meso-forge build
+meso-forge publish --channel s3://my-bucket/channel
+----
+
+=== With Conda/Pixi Workflows
+
+[source,bash]
+----
+# Set up authentication
+pixi auth login --host my-minio-server.com
+
+# Initialize MinIO tools
+init-minio --url https://my-minio-server.com --interactive
+
+# Use in conda package workflows
+rattler-build build recipe.yaml
+rattler-index index --channel s3://my-bucket/channel
+----
+
+== Documentation
+
+* link:docs/minio-setup.adoc[Complete MinIO Setup Guide]
+* link:docs/keyring-commands.adoc[Keyring Integration Commands]
+* link:configs/auth-local-minio.json.example[Example Configuration]
+
+== Support
+
+For issues and questions:
+
+* Repository: {repository}
+* Documentation: {repository}/blob/main/docs/minio-setup.adoc
+* License: MIT
+
+== Package Contents
+
+When installed, this package provides:
+
+[source]
+----
+$CONDA_PREFIX/
+├── bin/
+│   ├── init-minio                    # MinIO initialization tool
+│   ├── manage-minio-credentials      # Credential management tool
+│   └── remove-minio-bucket          # Bucket removal tool
+├── share/minio-s3-tools/
+│   ├── scripts/                     # Nu shell implementation scripts
+│   ├── configs/                     # Configuration examples
+│   ├── docs/                        # Documentation
+│   └── LICENSE.txt                  # License file
+└── etc/conda/activate.d/
+    └── minio-s3-tools.sh            # Environment setup
+----
+
+Environment variables set on activation:
+* `MINIO_S3_TOOLS_ROOT`: Path to package files
+* `MINIO_S3_TOOLS_VERSION`: Package version

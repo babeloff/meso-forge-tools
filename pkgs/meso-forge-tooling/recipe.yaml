@@ -21,21 +21,22 @@ build:
       mkdir -p $PREFIX/share/meso-forge-tooling
 
       # Copy all tooling components
-      cp -r scripts $PREFIX/share/meso-forge-tooling/
-      cp -r pkg-skeletons $PREFIX/share/meso-forge-tooling/
+      cp -r meso-forge-tooling/scripts $PREFIX/share/meso-forge-tooling/
+      cp -r meso-forge-tooling/pkg-skeletons $PREFIX/share/meso-forge-tooling/
 
       # Copy configuration files
-      cp configs/pixi.toml $PREFIX/share/meso-forge-tooling/
-      cp configs/conda-forge.yml $PREFIX/share/meso-forge-tooling/
-      cp configs/auth.json.example $PREFIX/share/meso-forge-tooling/
+      cp meso-forge-tooling/configs/pixi.toml $PREFIX/share/meso-forge-tooling/
+      cp meso-forge-tooling/configs/conda-forge.yml $PREFIX/share/meso-forge-tooling/
+      cp meso-forge-tooling/configs/auth.json.example $PREFIX/share/meso-forge-tooling/
 
       # Copy documentation
-      cp README.adoc $PREFIX/share/meso-forge-tooling/
-      cp LICENSE.txt $PREFIX/share/meso-forge-tooling/
+      cp meso-forge-tooling/docs $PREFIX/share/meso-forge-tooling/ -r
+      cp common/README.adoc $PREFIX/share/meso-forge-tooling/
+      cp common/LICENSE.txt $PREFIX/share/meso-forge-tooling/
 
       # Create wrapper script for meso-forge command
       mkdir -p $PREFIX/bin
-      cp -r scripts/meso-forge  $PREFIX/bin/meso-forge
+      cp -r meso-forge-tooling/scripts/meso-forge  $PREFIX/bin/meso-forge
       chmod +x $PREFIX/bin/meso-forge
 
       # Create environment activation script
@@ -69,7 +70,6 @@ tests:
 
         # Test that tooling files are accessible
         test -d "$CONDA_PREFIX/share/meso-forge-tooling/scripts"
-        test -d "$CONDA_PREFIX/share/meso-forge-tooling/.scripts"
         test -d "$CONDA_PREFIX/share/meso-forge-tooling/pkg-skeletons"
 
         # Test that required files exist
@@ -87,7 +87,7 @@ about:
   repository: https://github.com/phreed/meso-forge
   documentation: https://github.com/phreed/meso-forge/blob/main/README.adoc
   license: MIT
-  license_file: LICENSE.txt
+  license_file: common/LICENSE.txt
   summary: Multi-package build suite for conda packages
   description: |
     meso-forge-tooling provides the complete build infrastructure for creating

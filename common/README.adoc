@@ -86,30 +86,7 @@ pixi run minio-add-alias production https://minio.example.com
 pixi run minio-test-alias local-minio
 ----
 
-See link:minio-s3-tools/docs/minio-setup.adoc[MinIO Client Configuration Guide] for detailed setup options and security features.
-
-== File Organization
-
-This repository has been organized into package-specific directories for better maintainability:
-
-* **`common/`** - Shared files used by both packages (LICENSE.txt, README.adoc)
-* **`meso-forge-tooling/`** - Core build infrastructure files (scripts, configs, docs, pkg-skeletons)
-* **`minio-s3-tools/`** - MinIO-specific tooling files (scripts, configs, docs)
-* **`pkgs/`** - Package recipes for both packages
-* **Root level** - Project-wide files and general documentation
-
-See link:docs/file-organization.adoc[File Organization Guide] for detailed file categorization.
-
-== Documentation
-
-For detailed information about the project and packages:
-
-* link:docs/file-organization.adoc[File Organization Guide] - How files are organized into package-specific directories
-* link:docs/package-creation-summary.adoc[Package Creation Summary] - Complete guide to the minio-s3-tools package creation
-* link:docs/build-publish-test-results.adoc[Build and Publish Test Results] - Comprehensive testing validation and status
-* link:minio-s3-tools/docs/minio-setup.adoc[MinIO Setup Guide] - Comprehensive MinIO configuration and usage
-* link:minio-s3-tools/docs/security-changelog.adoc[Security Changelog] - Security enhancements and changes
-* link:docs/systemd-services.adoc[Systemd Services] - Service configuration for system packages
+See link:docs/minio-setup.adoc[MinIO Client Configuration Guide] for detailed setup options and security features.
 
 == Available Packages
 
@@ -125,8 +102,6 @@ The core build infrastructure package that provides:
 * **Package Templates** - Ready-to-use skeletons for different language ecosystems
 * **Version Management** - Automated version tracking and updates
 * **Quality Assurance** - Built-in linting and validation tools
-
-Package files located in: `meso-forge-tooling/`
 
 [source,bash]
 ----
@@ -147,8 +122,6 @@ Specialized tooling for MinIO S3-compatible credential and bucket management:
 * **Interactive Setup** - Secure credential entry with security best practices
 * **Cross-platform Support** - Works seamlessly across all platforms using pixi
 * **Workflow Integration** - Complete integration for conda package hosting
-
-Package files located in: `minio-s3-tools/`
 
 [source,bash]
 ----

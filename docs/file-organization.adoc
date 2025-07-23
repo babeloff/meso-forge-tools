@@ -1,0 +1,181 @@
+= File Organization Guide
+:toc:
+:toc-placement: preamble
+:sectnums:
+:icons: font
+:source-highlighter: rouge
+
+This document describes how files have been organized into package-specific directories for the meso-forge-tools repository.
+
+== Directory Structure
+
+----
+meso-forge-tools/
+├── common/                          # Shared files used by both packages
+├── meso-forge-tooling/              # Files specific to meso-forge-tooling package
+├── minio-s3-tools/                  # Files specific to minio-s3-tools package
+├── pkgs/                            # Package recipes directory
+│   ├── meso-forge-tooling/
+│   └── minio-s3-tools/
+├── docs/                            # General documentation (not package-specific)
+├── templates/                       # General templates
+├── output/                          # Build outputs
+├── pkgs-forged/                     # Forged packages
+└── [root files]                     # Project-level files
+----
+
+== File Categorization
+
+=== Common Files (./common/)
+
+These files are used by both packages:
+
+* `LICENSE.txt` - MIT license (copied by both packages)
+* `README.adoc` - Main project documentation (referenced by meso-forge-tooling)
+
+=== meso-forge-tooling Package Files (./meso-forge-tooling/)
+
+==== Scripts (./meso-forge-tooling/scripts/)
+
+* `meso-forge` - Main command entry point
+* `build_*.nu` - Build system scripts (build_all, build_mod, build_noarch, build_platform, build_single)
+* `publish*.nu` - Publishing scripts (publish, publish_mod)
+* `lint_recipes.nu` - Recipe validation
+* `test_package*.nu` - Testing scripts (test_package, test_packages)
+* `check_package_exists.nu` - Package existence verification
+* `package_retract.nu` - Package retraction
+* `npm_licenses.nu` - NPM license handling
+* `*.py` - Python utility scripts (analyze_recipes, generate_readmes, git_plugin, rubygem_plugin, tarball_url, test_plugins, version_ctl, yaml_utils)
+* `__init__.py` - Python module initialization
+* `plugins_source/` - Plugin source directory
+
+==== Configuration (./meso-forge-tooling/configs/)
+
+* `pixi.toml` - Pixi configuration for package branches
+* `conda-forge.yml` - Conda-forge configuration
+* `auth.json.example` - General authentication example
+
+==== Package Templates (./meso-forge-tooling/pkg-skeletons/)
+
+Complete directory with package templates for various languages
+
+==== Documentation (./meso-forge-tooling/docs/)
+
+* `package-retract.adoc` - Package retraction documentation
+* `version-ctl.adoc` - Version control documentation
+* `plugin-source.adoc` - Plugin source architecture
+* `recipe-latest-version.adoc` - Recipe versioning
+* `nushell-script-usage.adoc` - Nushell script usage
+* `nushell-json-patterns.adoc` - JSON patterns in Nushell
+* `json-patterns-demo.nu` - JSON patterns demonstration
+
+=== minio-s3-tools Package Files (./minio-s3-tools/)
+
+==== Scripts (./minio-s3-tools/scripts/)
+
+* `init_minio.nu` - MinIO initialization tool
+* `manage_minio_credentials.nu` - Credential management
+* `remove_minio_bucket.nu` - Bucket removal tool
+* `migrate_auth_to_keyring.nu` - Auth migration utility
+* `test_credentials.nu` - Credential testing utility
+
+==== Configuration (./minio-s3-tools/configs/)
+
+* `auth-local-minio.json.example` - MinIO-specific authentication example
+
+==== Documentation (./minio-s3-tools/docs/)
+
+* `minio-setup.adoc` - Complete MinIO setup guide
+* `keyring-commands.adoc` - Keyring integration commands
+* `security-changelog.adoc` - MinIO security enhancements changelog
+
+=== Root-Level Files (Unchanged)
+
+Files that remain at the project root and are not part of either package:
+
+==== Configuration and Project Files
+
+* `.github/` - GitHub workflows and templates
+* `.pixi/` - Pixi environment files
+* `.resources/` - Project resources
+* `.zed/` - Zed editor configuration
+* `templates/` - General project templates
+* `output/` - Build artifacts
+* `pkgs-forged/` - Forged packages directory
+* `.gitattributes` - Git attributes
+* `.gitignore` - Git ignore rules
+* `conda-forge.yml` - Root conda-forge configuration
+* `dot.envrc` - Environment configuration
+* `pixi.lock` - Pixi lock file
+* `pixi.toml` - Root pixi configuration
+
+==== Documentation and License Files
+
+* `docs/` - General project documentation (non-package-specific)
+** `systemd-services.adoc` - General systemd services documentation
+* `LICENSE.txt` - Root license file (kept for backward compatibility)
+* `README.adoc` - Root README (kept for backward compatibility)
+* link:package-creation-summary.adoc[Package Creation Summary] - Package creation documentation
+
+== Package Recipe Updates
+
+Both package recipes have been updated to reference the new file locations:
+
+=== meso-forge-tooling Recipe Changes
+
+* Scripts path: `scripts/` → `meso-forge-tooling/scripts/`
+* Package skeletons: `pkg-skeletons/` → `meso-forge-tooling/pkg-skeletons/`
+* Configs: `configs/` → `meso-forge-tooling/configs/`
+* Documentation: Added `meso-forge-tooling/docs/` directory copy
+* License: `LICENSE.txt` → `common/LICENSE.txt`
+* README: `README.adoc` → `common/README.adoc`
+
+=== minio-s3-tools Recipe Changes
+
+* Scripts: `scripts/init_minio.nu` → `minio-s3-tools/scripts/init_minio.nu`
+* Added additional scripts: `migrate_auth_to_keyring.nu`, `test_credentials.nu`
+* Configs: `configs/auth-local-minio.json.example` → `minio-s3-tools/configs/auth-local-minio.json.example`
+* Docs: `docs/minio-setup.adoc` → `minio-s3-tools/docs/minio-setup.adoc`
+* Added security changelog: `minio-s3-tools/docs/security-changelog.adoc`
+* License: `LICENSE.txt` → `common/LICENSE.txt`
+
+== Benefits of This Organization
+
+[cols="1,3"]
+|===
+|Benefit |Description
+
+|Clear Separation
+|Each package has its own directory with only relevant files
+
+|Shared Resources
+|Common files are centralized in the `common/` directory
+
+|Maintainability
+|Easier to maintain package-specific files independently
+
+|Build Efficiency
+|Packages only include necessary files, reducing package size
+
+|Version Control
+|Easier to track changes to specific package components
+
+|Development Workflow
+|Developers can work on packages independently
+
+|Testing
+|Package-specific tests only run against relevant files
+|===
+
+== Validation
+
+Both package recipes have been tested and render successfully with `rattler-build --render-only`, confirming that all file paths are correctly updated and accessible.
+
+== Package Sizes
+
+After reorganization:
+
+* **meso-forge-tooling**: ~146.6 KB - Contains all core build infrastructure
+* **minio-s3-tools**: ~43.7 KB - Contains only MinIO-specific functionality
+
+The separation results in more focused packages with reduced overhead for users who only need specific functionality.

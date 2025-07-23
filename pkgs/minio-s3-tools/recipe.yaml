@@ -1,0 +1,154 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.1.0"
+
+package:
+  name: minio-s3-tools
+  version: ${{ version }}
+
+source:
+  path: ../../
+
+build:
+  number: 0
+  noarch: generic
+  script: |
+    # Create the minio-s3-tools directory structure
+    mkdir -p $PREFIX/share/minio-s3-tools
+
+    # Copy MinIO-related scripts
+    mkdir -p $PREFIX/share/minio-s3-tools/scripts
+    cp minio-s3-tools/scripts/init_minio.nu $PREFIX/share/minio-s3-tools/scripts/
+    cp minio-s3-tools/scripts/manage_minio_credentials.nu $PREFIX/share/minio-s3-tools/scripts/
+    cp minio-s3-tools/scripts/remove_minio_bucket.nu $PREFIX/share/minio-s3-tools/scripts/
+    cp minio-s3-tools/scripts/migrate_auth_to_keyring.nu $PREFIX/share/minio-s3-tools/scripts/
+    cp minio-s3-tools/scripts/test_credentials.nu $PREFIX/share/minio-s3-tools/scripts/
+
+    # Copy MinIO-related configuration files
+    mkdir -p $PREFIX/share/minio-s3-tools/configs
+    cp minio-s3-tools/configs/auth-local-minio.json.example $PREFIX/share/minio-s3-tools/configs/
+
+    # Copy MinIO documentation
+    mkdir -p $PREFIX/share/minio-s3-tools/docs
+    cp minio-s3-tools/docs/minio-setup.adoc $PREFIX/share/minio-s3-tools/docs/
+    cp minio-s3-tools/docs/keyring-commands.adoc $PREFIX/share/minio-s3-tools/docs/
+    cp minio-s3-tools/docs/security-changelog.adoc $PREFIX/share/minio-s3-tools/docs/
+
+    # Copy license
+    cp common/LICENSE.txt $PREFIX/share/minio-s3-tools/
+
+    # Create wrapper scripts for MinIO commands
+    mkdir -p $PREFIX/bin
+
+    # Create init-minio wrapper
+    cat > $PREFIX/bin/init-minio << 'WRAPPER_EOF'
+    #!/bin/bash
+    exec nu "$CONDA_PREFIX/share/minio-s3-tools/scripts/init_minio.nu" "$@"
+    WRAPPER_EOF
+    chmod +x $PREFIX/bin/init-minio
+
+    # Create manage-minio-credentials wrapper
+    cat > $PREFIX/bin/manage-minio-credentials << 'WRAPPER_EOF'
+    #!/bin/bash
+    exec nu "$CONDA_PREFIX/share/minio-s3-tools/scripts/manage_minio_credentials.nu" "$@"
+    WRAPPER_EOF
+    chmod +x $PREFIX/bin/manage-minio-credentials
+
+    # Create remove-minio-bucket wrapper
+    cat > $PREFIX/bin/remove-minio-bucket << 'WRAPPER_EOF'
+    #!/bin/bash
+    exec nu "$CONDA_PREFIX/share/minio-s3-tools/scripts/remove_minio_bucket.nu" "$@"
+    WRAPPER_EOF
+    chmod +x $PREFIX/bin/remove-minio-bucket
+
+    # Create environment activation script
+    mkdir -p $PREFIX/etc/conda/activate.d
+    cat > $PREFIX/etc/conda/activate.d/minio-s3-tools.sh << 'ENV_EOF'
+    export MINIO_S3_TOOLS_ROOT="$CONDA_PREFIX/share/minio-s3-tools"
+    export MINIO_S3_TOOLS_VERSION="0.1.0"
+    ENV_EOF
+
+requirements:
+  host:
+    - python >=3.9
+  run:
+    - nushell >=0.105.1
+    - minio
+    - python >=3.9
+    - typer >=0.16.0
+    - requests >=2.32.3
+    - pyyaml >=6.0.2
+
+tests:
+  - script: |
+      # Test that the MinIO command wrappers are available
+      which init-minio
+      which manage-minio-credentials
+      which remove-minio-bucket
+
+      # Test that tooling files are accessible
+      test -d "$CONDA_PREFIX/share/minio-s3-tools/scripts"
+      test -d "$CONDA_PREFIX/share/minio-s3-tools/configs"
+      test -d "$CONDA_PREFIX/share/minio-s3-tools/docs"
+
+      # Test that required scripts exist
+      test -f "$CONDA_PREFIX/share/minio-s3-tools/scripts/init_minio.nu"
+      test -f "$CONDA_PREFIX/share/minio-s3-tools/scripts/manage_minio_credentials.nu"
+      test -f "$CONDA_PREFIX/share/minio-s3-tools/scripts/remove_minio_bucket.nu"
+
+      # Test that documentation exists
+      test -f "$CONDA_PREFIX/share/minio-s3-tools/docs/minio-setup.adoc"
+      test -f "$CONDA_PREFIX/share/minio-s3-tools/docs/keyring-commands.adoc"
+
+      # Test that configuration examples exist
+      test -f "$CONDA_PREFIX/share/minio-s3-tools/configs/auth-local-minio.json.example"
+
+      # Test that environment variables are set
+      test -n "$MINIO_S3_TOOLS_ROOT"
+      test -n "$MINIO_S3_TOOLS_VERSION"
+
+      # Test help commands (basic functionality)
+      init-minio --help
+      manage-minio-credentials --help
+      remove-minio-bucket --help
+
+      echo "All minio-s3-tools tests passed!"
+
+about:
+  homepage: https://github.com/phreed/meso-forge-tools
+  repository: https://github.com/phreed/meso-forge-tools
+  documentation: https://github.com/phreed/meso-forge-tools/blob/main/docs/minio-setup.adoc
+  license: MIT
+  license_file: common/LICENSE.txt
+  summary: MinIO S3-compatible credential and bucket management tools
+  description: |
+    minio-s3-tools provides secure credential management and bucket operations
+    for MinIO S3-compatible storage used with conda package repositories. It includes:
+
+    - Secure credential storage using system keychain/keyring via pixi authentication
+    - MinIO client alias management with automatic credential detection
+    - Bucket creation, configuration, and removal tools
+    - Interactive credential entry with security best practices
+    - Cross-platform authentication that works seamlessly with pixi
+    - Complete workflow integration for conda package hosting
+
+    Key features:
+    - **init-minio**: Configure MinIO client for conda package hosting with secure credential handling
+    - **manage-minio-credentials**: Add, list, test, and remove MinIO aliases and credentials
+    - **remove-minio-bucket**: Clean bucket removal with credential cleanup
+
+    The tools follow security best practices:
+    - No credential parameters accepted via command line (security risk)
+    - Credentials obtained from MinIO server configuration or interactive entry
+    - Uses 'pixi auth login' for secure keyring storage
+    - All credential handling uses secure system keychain/keyring
+    - Supports both local development and production MinIO servers
+
+    Perfect for conda package developers who need secure, reliable MinIO integration
+    for S3-compatible package hosting and distribution.
+
+extra:
+  recipe-maintainers:
+    - phreed
