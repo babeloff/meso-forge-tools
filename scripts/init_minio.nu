@@ -12,8 +12,8 @@
 
 # Default configuration
 const DEFAULT_MINIO_URL = "http://localhost:19000"
-const DEFAULT_BUCKET_NAME = "meso-forge"
-const DEFAULT_CHANNEL_NAME = "s3://meso-forge"
+const DEFAULT_BUCKET_NAME = "pixi-local"
+const DEFAULT_CHANNEL_NAME = "s3://pixi-local/meso-forge"
 const DEFAULT_MINIO_ALIAS = "local-minio"
 
 # Main command - NO credential parameters

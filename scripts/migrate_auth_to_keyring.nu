@@ -290,7 +290,7 @@ def execute_migrations [commands: list, dry_run: bool, verbose: bool] {
                 # Unset RATTLER_AUTH_FILE to ensure pixi operates on keyring directly
                 let result = (
                     with-env {RATTLER_AUTH_FILE: null} {
-                        ^($command.0) ...$command.1 | complete
+                        ^($command | first) ...($command | skip 1) | complete
                     }
                 )
                 if $result.exit_code == 0 {

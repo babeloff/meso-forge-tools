@@ -200,7 +200,7 @@ cmd = [
 [tasks.publish-local]
 args = [
     { arg = "force", default = "" },
-    { arg = "channel", default = "s3://meso-forge" },
+    { arg = "channel", default = "s3://pixi-local/meso-forge" },
     { arg = "url", default = "http://localhost:19000" },
 ]
 # the upload expects the RATTLER_AUTH_FILE variable to be set
@@ -300,7 +300,7 @@ cmd = [
 
 [tasks.index-local]
 depends-on = [
-    { task = "index-s3", args = ["http://localhost:19000", "s3://meso-forge"] }
+    { task = "index-s3", args = ["http://localhost:19000", "s3://pixi-local/meso-forge"] }
 ]
 
 # MinIO initialization tasks
