@@ -128,7 +128,7 @@ nu meso-forge-tooling/scripts/publish.nu --help
 
 **Fixed Issues:**
 * ✅ Resolved bash syntax error in meso-forge script
-* ✅ Fixed incorrect path references (.scripts → scripts)
+* ✅ Fixed incorrect path references (scripts → scripts)
 * ✅ Corrected script indentation and here-document formatting
 
 ==== minio-s3-tools Scripts

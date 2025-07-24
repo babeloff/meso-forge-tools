@@ -271,7 +271,7 @@ Test individual plugins using the provided test script:
 
 [source,bash]
 ----
-pixi run -e update python .scripts/test_plugins.py
+pixi run -e update python scripts/test_plugins.py
 ----
 
 === Integration Testing
@@ -281,13 +281,13 @@ Test with actual packages:
 [source,bash]
 ----
 # Test GitHub plugin
-pixi run -e update python .scripts/version_ctl.py --package digitalpy --dry-run
+pixi run -e update python scripts/version_ctl.py --package digitalpy --dry-run
 
 # Test RubyGems plugin
-pixi run -e update python .scripts/version_ctl.py --package asciidoctor-revealjs --dry-run
+pixi run -e update python scripts/version_ctl.py --package asciidoctor-revealjs --dry-run
 
 # Test Git plugin
-pixi run -e update python .scripts/version_ctl.py --package jank --dry-run
+pixi run -e update python scripts/version_ctl.py --package jank --dry-run
 ----
 
 == Troubleshooting
@@ -316,7 +316,7 @@ Enable verbose output for debugging:
 
 [source,bash]
 ----
-pixi run -e update python .scripts/version_ctl.py --package mypackage --verbose --dry-run
+pixi run -e update python scripts/version_ctl.py --package mypackage --verbose --dry-run
 ----
 
 == Future Enhancements

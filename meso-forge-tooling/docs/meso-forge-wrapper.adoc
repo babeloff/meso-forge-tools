@@ -1,0 +1,611 @@
+= Meso-Forge Wrapper Script Documentation
+:toc:
+:toclevels: 3
+:icons: font
+
+== Overview
+
+The `meso-forge` wrapper script provides a unified command-line interface to all the nushell scripts and Python utilities in the meso-forge-tooling package. It acts as a comprehensive wrapper that simplifies access to the entire build, test, and publish workflow.
+
+== Installation and Setup
+
+The `meso-forge` wrapper is automatically installed when you install the `meso-forge-tooling` conda package:
+
+[source,bash]
+----
+# Install from local channel
+pixi add meso-forge-tooling --channel http://localhost:19000/pixi-local/meso-forge
+
+# Or from prefix.dev
+pixi add meso-forge-tooling --channel https://prefix.dev/meso-forge
+----
+
+After installation, the `meso-forge` command becomes available in your PATH.
+
+== Environment Detection
+
+The wrapper automatically detects the meso-forge-tooling installation location in this order:
+
+1. **`$MESO_FORGE_TOOLING_ROOT`** - If set, uses this path directly
+2. **`$CONDA_PREFIX/share/meso-forge-tooling`** - Standard conda package location
+3. **`./meso-forge-tooling`** - Local development directory
+
+This allows the wrapper to work in both installed environments and development setups.
+
+== Command Categories
+
+=== Build Commands
+
+==== `build <package>`
+Build a specific package from the local `pkgs/` directory.
+
+[source,bash]
+----
+# Build a single package
+meso-forge build my-package
+
+# Build with additional options
+meso-forge build my-package --dry-run
+----
+
+==== `build-all`
+Build all packages in the repository.
+
+[source,bash]
+----
+# Build all packages
+meso-forge build-all
+
+# Build with verbose output
+meso-forge build-all --verbose
+----
+
+==== `build-noarch`
+Build only architecture-independent packages.
+
+[source,bash]
+----
+meso-forge build-noarch
+----
+
+==== `build-platform`
+Build platform-specific packages.
+
+[source,bash]
+----
+# Build for current platform
+meso-forge build-platform
+
+# Build for specific platform
+meso-forge build-platform --platform linux-64
+
+# Build for all platforms
+meso-forge build-platform --all-platforms
+----
+
+==== `build-single --recipe <path>`
+Build from a specific recipe file path.
+
+[source,bash]
+----
+meso-forge build-single --recipe ./custom/recipe.yaml
+----
+
+=== Publishing Commands
+
+==== `publish`
+Interactive publishing with mode selection.
+
+[source,bash]
+----
+meso-forge publish
+----
+
+==== `publish-pd`
+Publish to prefix.dev channel.
+
+[source,bash]
+----
+# Publish to default channel
+meso-forge publish-pd
+
+# Publish to specific channel
+meso-forge publish-pd --channel my-channel
+
+# Force overwrite existing packages
+meso-forge publish-pd --force
+----
+
+==== `publish-s3`
+Publish to S3-compatible storage.
+
+[source,bash]
+----
+# Publish to S3 with custom settings
+meso-forge publish-s3 --channel s3://my-bucket/channel --url https://my-s3.com
+
+# Dry run to see what would be published
+meso-forge publish-s3 --dry-run
+----
+
+==== `publish-local`
+Convenient shortcut for publishing to local MinIO instance.
+
+[source,bash]
+----
+# Publishes to s3://pixi-local/meso-forge at http://localhost:19000
+meso-forge publish-local
+----
+
+=== Testing Commands
+
+==== `test` or `test-packages`
+Test all built packages.
+
+[source,bash]
+----
+# Test all packages
+meso-forge test
+
+# Test with platform-specific options
+meso-forge test --platform linux-64
+----
+
+==== `test-package <name>`
+Test a specific package.
+
+[source,bash]
+----
+meso-forge test-package my-package
+----
+
+=== Package Management Commands
+
+==== `check <package>` or `check-package <package>`
+Check if a package exists in repositories.
+
+[source,bash]
+----
+# Check if package exists
+meso-forge check numpy
+
+# Check with platform specification
+meso-forge check numpy --platform linux-64 --check-all
+----
+
+==== `retract`
+Retract packages from repositories.
+
+[source,bash]
+----
+# Retract specific package version
+meso-forge retract my-package --versions 1.0.0 --method pd
+----
+
+==== `init-package <type> <name>` or `init <type> <name>`
+Create a new package from a skeleton template.
+
+[source,bash]
+----
+# Create Python package
+meso-forge init-package _skeleton_python my-tool
+
+# Create Rust package
+meso-forge init _skeleton_rust my-rust-app
+
+# Create C++ application
+meso-forge init _skeleton_cxx_appl my-cpp-tool
+----
+
+Available skeleton types:
+- `_skeleton_python` - Python package
+- `_skeleton_rust` - Rust package
+- `_skeleton_cxx_appl` - C++ application
+- `_skeleton_cxx_hdr` - C++ header-only library
+- `_skeleton_cxx_meson` - C++ with Meson build system
+- `_skeleton_go` - Go package
+- `_skeleton_js` - JavaScript/Node.js package
+- `_skeleton_jvm` - JVM-based package (Java/Scala/Kotlin)
+- `_skeleton_rlang` - R language package
+- `_skeleton_ruby` - Ruby package
+
+==== `list-packages` or `list`
+List available local packages.
+
+[source,bash]
+----
+meso-forge list-packages
+----
+
+==== `list-skeletons` or `skeletons`
+List available package skeleton templates.
+
+[source,bash]
+----
+meso-forge list-skeletons
+----
+
+=== Quality Assurance Commands
+
+==== `lint` or `lint-recipes`
+Lint recipe files for syntax and best practices.
+
+[source,bash]
+----
+# Lint all recipes
+meso-forge lint
+
+# Auto-fix issues where possible
+meso-forge lint --fix
+----
+
+==== `analyze` or `analyze-recipes`
+Analyze recipes for potential issues and improvements.
+
+[source,bash]
+----
+meso-forge analyze
+----
+
+==== `generate-readmes` or `readmes`
+Generate README files for packages.
+
+[source,bash]
+----
+meso-forge generate-readmes
+----
+
+=== Version Control Commands
+
+==== `version-update` or `version`
+Update package versions from upstream sources.
+
+[source,bash]
+----
+# Check all packages for version updates
+meso-forge version-update --each --dry-run
+
+# Update specific package
+meso-forge version my-package --update
+
+# Update with force overwrite
+meso-forge version my-package --update --force
+----
+
+==== `test-plugins`
+Test the version control plugin system.
+
+[source,bash]
+----
+meso-forge test-plugins
+----
+
+=== Utility Commands
+
+==== `list-scripts` or `scripts`
+List all available nushell and Python scripts.
+
+[source,bash]
+----
+meso-forge list-scripts
+----
+
+==== `config` or `info`
+Show configuration and environment information.
+
+[source,bash]
+----
+meso-forge config
+----
+
+Output includes:
+- Tooling root directory
+- Scripts directory location
+- Package skeletons directory
+- Current working directory
+- Version information
+- Local packages count
+
+==== `help`, `--help`, or `-h`
+Show comprehensive help information.
+
+[source,bash]
+----
+meso-forge help
+----
+
+==== `run <script-name> [args...]`
+Directly execute any available script (advanced usage).
+
+[source,bash]
+----
+# Run nushell script
+meso-forge run build_single --recipe ./my-recipe.yaml
+
+# Run Python script
+meso-forge run version_ctl --package my-package --dry-run
+
+# List available scripts first
+meso-forge list-scripts
+----
+
+== Complete Workflow Examples
+
+=== Package Development Workflow
+
+[source,bash]
+----
+# 1. Create new package from template
+meso-forge init-package _skeleton_python my-awesome-tool
+
+# 2. Edit the recipe (outside of meso-forge)
+# ... edit pkgs/my-awesome-tool/recipe.yaml ...
+
+# 3. Build the package
+meso-forge build my-awesome-tool
+
+# 4. Test the package
+meso-forge test-package my-awesome-tool
+
+# 5. Lint for quality
+meso-forge lint
+
+# 6. Publish to local channel for testing
+meso-forge publish-local
+
+# 7. Publish to production channel
+meso-forge publish-pd
+----
+
+=== Bulk Operations Workflow
+
+[source,bash]
+----
+# 1. Update all package versions
+meso-forge version-update --each --dry-run
+meso-forge version-update --each --update
+
+# 2. Build all packages
+meso-forge build-all
+
+# 3. Test all packages
+meso-forge test
+
+# 4. Quality assurance
+meso-forge lint
+meso-forge analyze
+
+# 5. Publish everything
+meso-forge publish-pd
+----
+
+=== Repository Maintenance Workflow
+
+[source,bash]
+----
+# 1. Check repository status
+meso-forge config
+meso-forge list-packages
+
+# 2. Verify package availability
+meso-forge check numpy
+meso-forge check scipy --platform linux-64
+
+# 3. Test plugin system
+meso-forge test-plugins
+
+# 4. Generate documentation
+meso-forge generate-readmes
+----
+
+== Error Handling
+
+The wrapper provides comprehensive error handling:
+
+=== Missing Dependencies
+If nushell or Python scripts are not found, the wrapper will show clear error messages and suggest solutions.
+
+=== Invalid Package Names
+When building packages, the wrapper validates that recipe files exist and provides helpful suggestions.
+
+=== Environment Issues
+The wrapper detects missing tooling installations and provides guidance on installation.
+
+=== Script Execution Errors
+All script execution includes proper error propagation and meaningful error messages.
+
+== Advanced Usage
+
+=== Environment Variable Customization
+
+[source,bash]
+----
+# Override tooling location
+export MESO_FORGE_TOOLING_ROOT="/custom/path/to/tooling"
+meso-forge config
+
+# Use in CI/CD environments
+export MESO_FORGE_TOOLING_ROOT="$CI_PROJECT_DIR/tooling"
+meso-forge build-all
+----
+
+=== Integration with Shell Scripts
+
+[source,bash]
+----
+#!/bin/bash
+# Example CI/CD script
+
+set -euo pipefail
+
+echo "Building all packages..."
+meso-forge build-all
+
+echo "Running tests..."
+meso-forge test
+
+echo "Publishing to staging..."
+meso-forge publish-s3 --channel s3://staging-bucket/packages --url https://staging-s3.example.com
+
+echo "Pipeline complete!"
+----
+
+=== Integration with Makefiles
+
+[source,makefile]
+----
+.PHONY: build test publish clean
+
+build:
+	meso-forge build-all
+
+test: build
+	meso-forge test
+
+lint:
+	meso-forge lint
+
+publish: test lint
+	meso-forge publish-pd
+
+clean:
+	rm -rf output/
+
+init-python-%:
+	meso-forge init-package _skeleton_python $*
+
+init-rust-%:
+	meso-forge init-package _skeleton_rust $*
+----
+
+== Troubleshooting
+
+=== Common Issues
+
+==== "meso-forge-tooling not found"
+*Cause:* The tooling package is not installed or the environment variables are incorrect.
+
+*Solution:*
+[source,bash]
+----
+# Check if package is installed
+pixi list | grep meso-forge-tooling
+
+# Install if missing
+pixi add meso-forge-tooling
+
+# Check environment
+meso-forge config
+----
+
+==== "Script not found"
+*Cause:* Trying to run a script that doesn't exist.
+
+*Solution:*
+[source,bash]
+----
+# List available scripts
+meso-forge list-scripts
+
+# Check exact script names
+ls "$(meso-forge config | grep 'Scripts dir' | cut -d: -f2 | xargs)"
+----
+
+==== "Recipe not found"
+*Cause:* Package name doesn't correspond to a recipe file.
+
+*Solution:*
+[source,bash]
+----
+# List available packages
+meso-forge list-packages
+
+# Check package structure
+ls -la pkgs/
+----
+
+==== Permission Denied
+*Cause:* The wrapper script doesn't have execute permissions.
+
+*Solution:*
+[source,bash]
+----
+# Find wrapper location
+which meso-forge
+
+# Fix permissions if needed
+chmod +x "$(which meso-forge)"
+----
+
+=== Debug Mode
+
+For troubleshooting script execution, you can enable bash debug mode:
+
+[source,bash]
+----
+# Enable debug output
+bash -x "$(which meso-forge)" build my-package
+
+# Or set debug mode
+set -x
+meso-forge build my-package
+set +x
+----
+
+== Development and Contribution
+
+=== Adding New Commands
+
+To add new commands to the wrapper:
+
+1. Add the command case to the main switch statement
+2. Implement the command logic using `run_nu_script` or `run_py_script`
+3. Update the help text
+4. Add documentation examples
+5. Test the new command
+
+=== Script Organization
+
+The wrapper assumes this directory structure:
+----
+$TOOLING_ROOT/
+├── scripts/
+│   ├── *.nu           # Nushell scripts
+│   ├── *.py           # Python scripts
+│   └── meso-forge     # This wrapper script
+├── pkg-skeletons/
+│   └── _skeleton_*/   # Package templates
+└── docs/
+    └── *.adoc         # Documentation files
+----
+
+=== Testing Changes
+
+When modifying the wrapper:
+
+[source,bash]
+----
+# Test basic functionality
+./meso-forge-tooling/scripts/meso-forge help
+./meso-forge-tooling/scripts/meso-forge config
+./meso-forge-tooling/scripts/meso-forge list-scripts
+
+# Test script execution
+./meso-forge-tooling/scripts/meso-forge run test_plugins
+
+# Test package operations
+./meso-forge-tooling/scripts/meso-forge list-packages
+./meso-forge-tooling/scripts/meso-forge build my-package
+----
+
+== See Also
+
+- link:nushell-script-usage.adoc[Nushell Scripts Usage Documentation]
+- link:version-ctl.adoc[Version Control System Documentation]
+- link:plugin-source.adoc[Plugin Source Architecture]
+- link:recipe-latest-version.adoc[Recipe Version Management]
+
+---
+
+*Last updated: July 2025*
+*Version: 0.1.8*

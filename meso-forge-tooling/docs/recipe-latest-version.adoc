@@ -261,10 +261,10 @@ To test your version patterns and mode configuration:
 [source,console]
 ----
 # Dry run to see what version would be detected
-pixi run -e update python .scripts/version_ctl.py --package your-package --dry-run
+pixi run -e update python scripts/version_ctl.py --package your-package --dry-run
 
 # Check multiple packages
-pixi run -e update python .scripts/version_ctl.py --each --dry-run
+pixi run -e update python scripts/version_ctl.py --each --dry-run
 ----
 
 The output will show:
@@ -430,7 +430,7 @@ extra:
 
 Before committing your pattern:
 
-1. ✅ **Dry run test**: `pixi run -e update python .scripts/version_ctl.py --package mypackage --dry-run`
+1. ✅ **Dry run test**: `pixi run -e update python scripts/version_ctl.py --package mypackage --dry-run`
 2. ✅ **Check capture group**: Ensure `()` captures only the version number
 3. ✅ **Verify against actual versions**: Visit source (GitHub releases or RubyGems) to confirm format
 4. ✅ **Test edge cases**: Consider what happens with pre-releases, different prefixes

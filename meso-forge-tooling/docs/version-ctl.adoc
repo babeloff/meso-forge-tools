@@ -24,30 +24,30 @@ The meso-forge project includes an intelligent, plugin-based version control sys
 [source,bash]
 ----
 # Check all packages with dry run
-pixi run -e update python .scripts/version_ctl.py --each --dry-run
+pixi run -e update python scripts/version_ctl.py --each --dry-run
 
 # Actually update packages
-pixi run -e update python .scripts/version_ctl.py --each --update
+pixi run -e update python scripts/version_ctl.py --each --update
 ----
 
 === Check Specific Package
 [source,bash]
 ----
 # Check one package
-pixi run -e update python .scripts/version_ctl.py --package digitalpy
+pixi run -e update python scripts/version_ctl.py --package digitalpy
 
 # Check multiple packages
-pixi run -e update python .scripts/version_ctl.py --package fd --package dysk
+pixi run -e update python scripts/version_ctl.py --package fd --package dysk
 
 # Check conda-forge status only
-pixi run -e update python .scripts/version_ctl.py --package fd --conda-forge-only
+pixi run -e update python scripts/version_ctl.py --package fd --conda-forge-only
 ----
 
 === List Available Packages
 [source,bash]
 ----
 # Show all available packages
-pixi run -e update python .scripts/version_ctl.py --list-packages
+pixi run -e update python scripts/version_ctl.py --list-packages
 ----
 
 == Plugin Architecture
@@ -135,7 +135,7 @@ The system makes intelligent decisions based on:
 === Core Command
 [source,bash]
 ----
-pixi run -e update python .scripts/version_ctl.py [OPTIONS]
+pixi run -e update python scripts/version_ctl.py [OPTIONS]
 ----
 
 === Package Selection Options
@@ -300,11 +300,11 @@ urllib3 = ">=2.5.0,<3.0"
 [source,bash]
 ----
 # Use the update environment
-pixi run -e update python .scripts/version_ctl.py --help
+pixi run -e update python scripts/version_ctl.py --help
 
 # Or activate shell
 pixi shell -e update
-python .scripts/version_ctl.py --help
+python scripts/version_ctl.py --help
 ----
 
 === Authentication Tokens
@@ -317,7 +317,7 @@ For better API rate limits and access:
 export GITHUB_TOKEN=your_github_token_here
 
 # Verify plugins are working
-pixi run -e update python .scripts/test_plugins.py
+pixi run -e update python scripts/test_plugins.py
 ----
 
 == Common Use Cases
@@ -326,46 +326,46 @@ pixi run -e update python .scripts/test_plugins.py
 [source,bash]
 ----
 # Quick status check
-pixi run -e update python .scripts/version_ctl.py --each --quiet
+pixi run -e update python scripts/version_ctl.py --each --quiet
 
 # Show only packages with updates available
-pixi run -e update python .scripts/version_ctl.py --each --newer-only
+pixi run -e update python scripts/version_ctl.py --each --newer-only
 
 # Check conda-forge status for all packages
-pixi run -e update python .scripts/version_ctl.py --each --conda-forge-only
+pixi run -e update python scripts/version_ctl.py --each --conda-forge-only
 ----
 
 === Before Adding New Packages
 [source,bash]
 ----
 # Check if package already exists on conda-forge
-pixi run -e update python .scripts/version_ctl.py --package NEW_PACKAGE --conda-forge-only
+pixi run -e update python scripts/version_ctl.py --package NEW_PACKAGE --conda-forge-only
 ----
 
 === Bulk Updates with Safety
 [source,bash]
 ----
 # See what would be updated (dry run)
-pixi run -e update python .scripts/version_ctl.py --each --dry-run
+pixi run -e update python scripts/version_ctl.py --each --dry-run
 
 # Perform actual updates
-pixi run -e update python .scripts/version_ctl.py --each --update
+pixi run -e update python scripts/version_ctl.py --each --update
 
 # Force updates even for matching versions
-pixi run -e update python .scripts/version_ctl.py --each --update --force
+pixi run -e update python scripts/version_ctl.py --each --update --force
 ----
 
 === Package-Specific Operations
 [source,bash]
 ----
 # Update specific packages
-pixi run -e update python .scripts/version_ctl.py --package fd --package dysk --update
+pixi run -e update python scripts/version_ctl.py --package fd --package dysk --update
 
 # Force update a specific package
-pixi run -e update python .scripts/version_ctl.py --package mypackage --update --force
+pixi run -e update python scripts/version_ctl.py --package mypackage --update --force
 
 # Verbose debugging for problematic package
-pixi run -e update python .scripts/version_ctl.py --package problematic --verbose
+pixi run -e update python scripts/version_ctl.py --package problematic --verbose
 ----
 
 == Testing and Debugging
@@ -374,7 +374,7 @@ pixi run -e update python .scripts/version_ctl.py --package problematic --verbos
 [source,bash]
 ----
 # Test plugin loading and functionality
-pixi run -e update python .scripts/test_plugins.py
+pixi run -e update python scripts/test_plugins.py
 
 # This tests:
 # - Plugin discovery and loading
@@ -387,19 +387,19 @@ pixi run -e update python .scripts/test_plugins.py
 [source,bash]
 ----
 # Test specific source types
-pixi run -e update python .scripts/version_ctl.py --package digitalpy --dry-run      # GitHub
-pixi run -e update python .scripts/version_ctl.py --package asciidoctor-revealjs --dry-run  # RubyGems
-pixi run -e update python .scripts/version_ctl.py --package jank --dry-run          # Git
+pixi run -e update python scripts/version_ctl.py --package digitalpy --dry-run      # GitHub
+pixi run -e update python scripts/version_ctl.py --package asciidoctor-revealjs --dry-run  # RubyGems
+pixi run -e update python scripts/version_ctl.py --package jank --dry-run          # Git
 ----
 
 === Debug Mode
 [source,bash]
 ----
 # Enable verbose output for troubleshooting
-pixi run -e update python .scripts/version_ctl.py --package mypackage --verbose --dry-run
+pixi run -e update python scripts/version_ctl.py --package mypackage --verbose --dry-run
 
 # JSON output for programmatic analysis
-pixi run -e update python .scripts/version_ctl.py --package mypackage --json
+pixi run -e update python scripts/version_ctl.py --package mypackage --json
 ----
 
 == Troubleshooting
@@ -410,7 +410,7 @@ pixi run -e update python .scripts/version_ctl.py --package mypackage --json
 [source,bash]
 ----
 # Check plugin system
-pixi run -e update python .scripts/test_plugins.py
+pixi run -e update python scripts/test_plugins.py
 
 # Verify environment
 pixi list -e update
@@ -420,7 +420,7 @@ pixi list -e update
 [source,bash]
 ----
 # Use verbose mode to see pattern matching
-pixi run -e update python .scripts/version_ctl.py --package mypackage --verbose
+pixi run -e update python scripts/version_ctl.py --package mypackage --verbose
 
 # Check actual tags/versions in source repository
 ----
@@ -553,7 +553,7 @@ class SourcePlugin(ABC):
 
 === Getting Help
 
-1. Check plugin functionality: `pixi run -e update python .scripts/test_plugins.py`
+1. Check plugin functionality: `pixi run -e update python scripts/test_plugins.py`
 2. Use verbose mode for debugging: `--verbose`
 3. Review plugin documentation: link:plugin-source.adoc[Plugin Source Architecture]
 4. Test individual packages with `--dry-run`
@@ -573,19 +573,19 @@ When contributing to the version control system:
 [source,bash]
 ----
 # 1. Test existing functionality
-pixi run -e update python .scripts/test_plugins.py
+pixi run -e update python scripts/test_plugins.py
 
 # 2. Make changes
 # ... edit files ...
 
 # 3. Test specific functionality
-pixi run -e update python .scripts/version_ctl.py --package testpkg --dry-run --verbose
+pixi run -e update python scripts/version_ctl.py --package testpkg --dry-run --verbose
 
 # 4. Test plugin system again
-pixi run -e update python .scripts/test_plugins.py
+pixi run -e update python scripts/test_plugins.py
 
 # 5. Run broader tests
-pixi run -e update python .scripts/version_ctl.py --each --dry-run
+pixi run -e update python scripts/version_ctl.py --each --dry-run
 ----
 
 ---

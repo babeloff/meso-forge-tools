@@ -680,7 +680,7 @@ package:
 source:
   - url: https://github.com/bitwarden/clients/archive/refs/tags/cli-v${{ version }}.tar.gz
     sha256: 2c31f8f66e197d5bcbc656c258d4556c97e49a940cabad3ec76ff3742b5252c7
-  - path: ../../.scripts/npm_licenses.nu
+  - path: ../../scripts/npm_licenses.nu
     file_name: npm_licenses.nu
 
 build:

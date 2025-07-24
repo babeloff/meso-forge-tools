@@ -58,7 +58,7 @@ source:
   #   target_directory: ${{ name }}-src
 
   # License collection script (always include)
-  - path: ../../.scripts/npm_licenses.nu
+  - path: ../../scripts/npm_licenses.nu
     file_name: npm_licenses.nu
     target_directory: scripts
 

@@ -1,65 +1,234 @@
 #!/bin/bash
 
 # meso-forge - Multi-package build suite wrapper
+# Comprehensive wrapper for all meso-forge-tooling nushell scripts
 
-MESO_FORGE_TOOLING_ROOT="$CONDA_PREFIX/share/meso-forge-tooling"
+set -euo pipefail
 
-if [[ ! -d "$MESO_FORGE_TOOLING_ROOT" ]]; then
-    echo "Error: meso-forge-tooling not found at $MESO_FORGE_TOOLING_ROOT"
+# Determine the tooling root directory
+if [[ -n "${MESO_FORGE_TOOLING_ROOT:-}" && -d "$MESO_FORGE_TOOLING_ROOT" ]]; then
+    TOOLING_ROOT="$MESO_FORGE_TOOLING_ROOT"
+elif [[ -n "${CONDA_PREFIX:-}" && -d "$CONDA_PREFIX/share/meso-forge-tooling" ]]; then
+    TOOLING_ROOT="$CONDA_PREFIX/share/meso-forge-tooling"
+elif [[ -d "./meso-forge-tooling" ]]; then
+    TOOLING_ROOT="./meso-forge-tooling"
+else
+    echo "Error: meso-forge-tooling not found. Please ensure it's installed or set MESO_FORGE_TOOLING_ROOT" >&2
     exit 1
 fi
 
-# Change to the current directory (where packages are)
-cd "$(pwd)"
+SCRIPTS_DIR="$TOOLING_ROOT/scripts"
+SKELETONS_DIR="$TOOLING_ROOT/pkg-skeletons"
 
-case "$1" in
+# Helper function to run nushell scripts
+run_nu_script() {
+    local script_name="$1"
+    shift
+    local script_path="$SCRIPTS_DIR/$script_name"
+
+    if [[ ! -f "$script_path" ]]; then
+        echo "Error: Script not found: $script_path" >&2
+        exit 1
+    fi
+
+    nu "$script_path" "$@"
+}
+
+# Helper function to run Python scripts
+run_py_script() {
+    local script_name="$1"
+    shift
+    local script_path="$SCRIPTS_DIR/$script_name"
+
+    if [[ ! -f "$script_path" ]]; then
+        echo "Error: Script not found: $script_path" >&2
+        exit 1
+    fi
+
+    python "$script_path" "$@"
+}
+
+# Main command dispatcher
+case "${1:-help}" in
+    # Build commands
     build|build-pkg)
-        if [[ -n "$2" ]]; then
+        if [[ -n "${2:-}" ]]; then
             # Build specific package - construct recipe path
             RECIPE_PATH="./pkgs/$2/recipe.yaml"
             if [[ -f "$RECIPE_PATH" ]]; then
-                nu "$MESO_FORGE_TOOLING_ROOT/scripts/build_single.nu" --recipe "$RECIPE_PATH" "${@:3}"
+                run_nu_script "build_single.nu" --recipe "$RECIPE_PATH" "${@:3}"
             else
-                echo "Error: Recipe not found at $RECIPE_PATH"
+                echo "Error: Recipe not found at $RECIPE_PATH" >&2
+                echo "Available packages:" >&2
+                ls -1 ./pkgs/ 2>/dev/null || echo "No packages directory found" >&2
                 exit 1
             fi
         else
-            echo "Error: Package name required for build command"
-            echo "Usage: meso-forge build <package-name>"
+            echo "Error: Package name required for build command" >&2
+            echo "Usage: meso-forge build <package-name> [options]" >&2
+            echo "       meso-forge build-all [options]" >&2
             exit 1
         fi
         ;;
     build-all)
-        nu "$MESO_FORGE_TOOLING_ROOT/scripts/build_all.nu" "${@:2}"
+        run_nu_script "build_all.nu" "${@:2}"
         ;;
     build-noarch)
-        nu "$MESO_FORGE_TOOLING_ROOT/scripts/build_noarch.nu" "${@:2}"
+        run_nu_script "build_noarch.nu" "${@:2}"
         ;;
     build-platform)
-        nu "$MESO_FORGE_TOOLING_ROOT/scripts/build_platform.nu" "${@:2}"
+        run_nu_script "build_platform.nu" "${@:2}"
         ;;
+    build-single)
+        if [[ -z "${2:-}" ]]; then
+            echo "Error: Recipe path required" >&2
+            echo "Usage: meso-forge build-single --recipe <path/to/recipe.yaml> [options]" >&2
+            exit 1
+        fi
+        run_nu_script "build_single.nu" "${@:2}"
+        ;;
+
+    # Publishing commands
     publish)
-        nu "$MESO_FORGE_TOOLING_ROOT/scripts/publish.nu" "${@:2}"
+        run_nu_script "publish.nu" "${@:2}"
         ;;
     publish-pd)
-        nu "$MESO_FORGE_TOOLING_ROOT/scripts/publish.nu" --mode pd "${@:2}"
+        run_nu_script "publish.nu" --mode pd "${@:2}"
         ;;
     publish-s3)
-        nu "$MESO_FORGE_TOOLING_ROOT/scripts/publish.nu" --mode s3 "${@:2}"
+        run_nu_script "publish.nu" --mode s3 "${@:2}"
         ;;
+    publish-local)
+        run_nu_script "publish.nu" --mode s3 --channel "s3://pixi-local/meso-forge" --url "http://localhost:19000" "${@:2}"
+        ;;
+
+    # Testing commands
     test|test-packages)
-        nu "$MESO_FORGE_TOOLING_ROOT/scripts/test_packages.nu" "${@:2}"
+        run_nu_script "test_packages.nu" "${@:2}"
         ;;
+    test-package)
+        if [[ -z "${2:-}" ]]; then
+            echo "Error: Package name required" >&2
+            echo "Usage: meso-forge test-package <package-name> [options]" >&2
+            exit 1
+        fi
+        run_nu_script "test_package.nu" "${@:2}"
+        ;;
+
+    # Package management commands
+    check-package|check)
+        run_nu_script "check_package_exists.nu" "${@:2}"
+        ;;
+    retract)
+        run_nu_script "package_retract.nu" "${@:2}"
+        ;;
+
+    # Quality assurance commands
     lint|lint-recipes)
-        nu "$MESO_FORGE_TOOLING_ROOT/scripts/lint_recipes.nu" "${@:2}"
+        run_nu_script "lint_recipes.nu" "${@:2}"
         ;;
-    init-package)
-        cp -r "$MESO_FORGE_TOOLING_ROOT/pkg-skeletons/${2:-_skeleton_python}" "./pkgs/$3"
-        echo "Created package skeleton at ./pkgs/$3"
+    analyze-recipes|analyze)
+        run_py_script "analyze_recipes.py" "${@:2}"
         ;;
-    version-update)
-        python "$MESO_FORGE_TOOLING_ROOT/scripts/version_ctl.py" "${@:2}"
+    generate-readmes|readmes)
+        run_py_script "generate_readmes.py" "${@:2}"
         ;;
+
+    # Version control commands
+    version-update|version)
+        run_py_script "version_ctl.py" "${@:2}"
+        ;;
+    test-plugins)
+        run_py_script "test_plugins.py" "${@:2}"
+        ;;
+
+    # Package initialization commands
+    init-package|init)
+        if [[ -z "${2:-}" || -z "${3:-}" ]]; then
+            echo "Error: Both skeleton type and package name required" >&2
+            echo "Usage: meso-forge init-package <skeleton-type> <package-name>" >&2
+            echo "Available skeletons:" >&2
+            ls -1 "$SKELETONS_DIR" 2>/dev/null | grep "^_skeleton_" || echo "No skeletons found" >&2
+            exit 1
+        fi
+
+        SKELETON_TYPE="$2"
+        PACKAGE_NAME="$3"
+        SOURCE_DIR="$SKELETONS_DIR/$SKELETON_TYPE"
+        TARGET_DIR="./pkgs/$PACKAGE_NAME"
+
+        if [[ ! -d "$SOURCE_DIR" ]]; then
+            echo "Error: Skeleton type '$SKELETON_TYPE' not found" >&2
+            echo "Available skeletons:" >&2
+            ls -1 "$SKELETONS_DIR" 2>/dev/null | grep "^_skeleton_" || echo "No skeletons found" >&2
+            exit 1
+        fi
+
+        if [[ -d "$TARGET_DIR" ]]; then
+            echo "Error: Package '$PACKAGE_NAME' already exists at $TARGET_DIR" >&2
+            exit 1
+        fi
+
+        mkdir -p "./pkgs"
+        cp -r "$SOURCE_DIR" "$TARGET_DIR"
+        echo "✅ Created package skeleton '$PACKAGE_NAME' from '$SKELETON_TYPE'"
+        echo "📁 Package created at: $TARGET_DIR"
+        echo "📝 Next steps:"
+        echo "   1. Edit $TARGET_DIR/recipe.yaml"
+        echo "   2. Run: meso-forge build $PACKAGE_NAME"
+        ;;
+
+    # Utility commands
+    list-packages|list)
+        echo "Available packages:"
+        if [[ -d "./pkgs" ]]; then
+            ls -1 ./pkgs/
+        else
+            echo "No packages directory found"
+        fi
+        ;;
+    list-skeletons|skeletons)
+        echo "Available package skeletons:"
+        if [[ -d "$SKELETONS_DIR" ]]; then
+            ls -1 "$SKELETONS_DIR" | grep "^_skeleton_" | sed 's/^_skeleton_/  /'
+        else
+            echo "No skeletons directory found"
+        fi
+        ;;
+    list-scripts|scripts)
+        echo "Available nushell scripts:"
+        if [[ -d "$SCRIPTS_DIR" ]]; then
+            ls -1 "$SCRIPTS_DIR"/*.nu 2>/dev/null | xargs -n1 basename | sed 's/\.nu$//' | sed 's/^/  /' || echo "No .nu scripts found"
+        else
+            echo "No scripts directory found"
+        fi
+        echo
+        echo "Available Python scripts:"
+        if [[ -d "$SCRIPTS_DIR" ]]; then
+            ls -1 "$SCRIPTS_DIR"/*.py 2>/dev/null | xargs -n1 basename | sed 's/\.py$//' | sed 's/^/  /' || echo "No .py scripts found"
+        else
+            echo "No scripts directory found"
+        fi
+        ;;
+
+    # Information commands
+    config|info)
+        echo "Meso-forge tooling configuration:"
+        echo "  Tooling root: $TOOLING_ROOT"
+        echo "  Scripts dir:  $SCRIPTS_DIR"
+        echo "  Skeletons:    $SKELETONS_DIR"
+        echo "  Working dir:  $(pwd)"
+        echo "  Version:      ${MESO_FORGE_VERSION:-unknown}"
+        echo
+        if [[ -d "./pkgs" ]]; then
+            echo "Local packages ($(ls -1 ./pkgs | wc -l)):"
+            ls -1 ./pkgs | sed 's/^/  /'
+        else
+            echo "No local packages directory found"
+        fi
+        ;;
+
+    # Help commands
     help|--help|-h)
         cat << 'HELP'
 meso-forge - Multi-package build suite
@@ -67,18 +236,42 @@ meso-forge - Multi-package build suite
 USAGE:
     meso-forge <command> [options]
 
-COMMANDS:
+BUILD COMMANDS:
     build <package>         Build a specific package
     build-all              Build all packages
     build-noarch           Build noarch packages only
     build-platform         Build platform-specific packages
-    publish                Publish built packages
+    build-single --recipe <path>  Build from specific recipe file
+
+PUBLISHING COMMANDS:
+    publish                Publish built packages (interactive mode selection)
     publish-pd             Publish to prefix.dev
     publish-s3             Publish to S3
-    test                   Test built packages
-    lint                   Lint recipe files
+    publish-local          Publish to local MinIO (localhost:19000)
+
+TESTING COMMANDS:
+    test                   Test all built packages
+    test-package <name>    Test a specific package
+
+PACKAGE MANAGEMENT:
+    check <package>        Check if package exists in repositories
+    retract                Retract packages from repositories
     init-package <type> <name>  Create new package from skeleton
-    version-update         Update package versions
+    list-packages          List available local packages
+    list-skeletons         List available package skeletons
+
+QUALITY ASSURANCE:
+    lint                   Lint recipe files
+    analyze                Analyze recipes for issues
+    generate-readmes       Generate README files for packages
+
+VERSION CONTROL:
+    version-update         Update package versions from upstream
+    test-plugins           Test version control plugins
+
+UTILITY COMMANDS:
+    list-scripts           List all available scripts
+    config                 Show configuration and environment info
     help                   Show this help
 
 PACKAGE SKELETONS:
@@ -94,18 +287,75 @@ PACKAGE SKELETONS:
     _skeleton_ruby         Ruby package
 
 EXAMPLES:
-    meso-forge build my-package
+    # Package development workflow
+    meso-forge init-package _skeleton_python my-tool
+    meso-forge build my-tool
+    meso-forge test-package my-tool
     meso-forge publish-pd
-    meso-forge init-package _skeleton_rust my-rust-tool
-    meso-forge version-update --package my-package
 
-For more detailed help, see the documentation at:
-$MESO_FORGE_TOOLING_ROOT/README.adoc
+    # Bulk operations
+    meso-forge build-all
+    meso-forge lint
+    meso-forge version-update
+
+    # Repository management
+    meso-forge check numpy
+    meso-forge list-packages
+    meso-forge config
+
+ENVIRONMENT:
+    Set MESO_FORGE_TOOLING_ROOT to override tooling location
+    Default locations checked:
+    1. $MESO_FORGE_TOOLING_ROOT (if set)
+    2. $CONDA_PREFIX/share/meso-forge-tooling
+    3. ./meso-forge-tooling
+
+For detailed documentation, see:
+    $TOOLING_ROOT/README.adoc
+    $TOOLING_ROOT/docs/
 HELP
         ;;
+
+    # Direct script execution (for advanced users)
+    run)
+        if [[ -z "${2:-}" ]]; then
+            echo "Error: Script name required" >&2
+            echo "Usage: meso-forge run <script-name> [args...]" >&2
+            echo "Available scripts:" >&2
+            meso-forge list-scripts
+            exit 1
+        fi
+
+        SCRIPT_NAME="$2"
+        shift 2
+
+        # Try .nu extension first, then .py
+        if [[ -f "$SCRIPTS_DIR/$SCRIPT_NAME.nu" ]]; then
+            run_nu_script "$SCRIPT_NAME.nu" "$@"
+        elif [[ -f "$SCRIPTS_DIR/$SCRIPT_NAME.py" ]]; then
+            run_py_script "$SCRIPT_NAME.py" "$@"
+        elif [[ -f "$SCRIPTS_DIR/$SCRIPT_NAME" ]]; then
+            # Try exact name
+            if [[ "$SCRIPT_NAME" == *.nu ]]; then
+                run_nu_script "$SCRIPT_NAME" "$@"
+            elif [[ "$SCRIPT_NAME" == *.py ]]; then
+                run_py_script "$SCRIPT_NAME" "$@"
+            else
+                echo "Error: Unknown script type: $SCRIPT_NAME" >&2
+                exit 1
+            fi
+        else
+            echo "Error: Script not found: $SCRIPT_NAME" >&2
+            echo "Available scripts:" >&2
+            meso-forge list-scripts
+            exit 1
+        fi
+        ;;
+
     *)
-        echo "Unknown command: $1"
-        echo "Use 'meso-forge help' for usage information"
+        echo "Unknown command: $1" >&2
+        echo "Use 'meso-forge help' for usage information" >&2
+        echo "Use 'meso-forge list-scripts' to see all available scripts" >&2
         exit 1
         ;;
 esac

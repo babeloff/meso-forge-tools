@@ -67,6 +67,11 @@ args = [
 cmd = ["nu", "meso-forge-tooling/scripts/build_platform.nu", "--platform", "{{ platform }}"]
 cwd = "."
 
+# Main meso-forge wrapper command
+[tasks.meso-forge]
+cmd = "nu meso-forge-tooling/scripts/meso-forge.nu"
+cwd = "."
+
 # Individual package builds (examples)
 [tasks.build-pkg]
 args = [
@@ -139,13 +144,13 @@ solve-group = "dev"
 
 
 # [tasks.analyze-recipes]
-# cmd = ["python", ".scripts/analyze_recipes.py"]
+# cmd = ["python", "scripts/analyze_recipes.py"]
 
 # [tasks.fix-recipe-indentation]
-# cmd = ["python", ".scripts/fix_recipe_indentation.py"]
+# cmd = ["python", "scripts/fix_recipe_indentation.py"]
 
 # [tasks.generate-readmes]
-# cmd = ["python", ".scripts/generate_readmes.py"]
+# cmd = ["python", "scripts/generate_readmes.py"]
 
 [feature.cross-compile.dependencies]
 # Additional dependencies needed for cross-compilation
@@ -216,7 +221,7 @@ cmd = [
 ]
 
 # [tasks.publish-status]
-# cmd = ["nu", "-c", "use .scripts/package_publish.nu *; publish-status"]
+# cmd = ["nu", "-c", "use scripts/package_publish.nu *; publish-status"]
 
 # # Package retraction tasks
 # [tasks.retract-pd]
@@ -230,7 +235,7 @@ cmd = [
 # # the retraction expects the RATTLER_AUTH_FILE variable to be set
 # cmd = [
 #     "nu",
-#     ".scripts/package_retract.nu",
+#     "scripts/package_retract.nu",
 #     "{{ pkg }}",
 #     "--channel={{ channel }}",
 #     "--versions={{ versions }}",
@@ -251,7 +256,7 @@ cmd = [
 # # the retraction expects AWS credentials to be configured
 # cmd = [
 #     "nu",
-#     ".scripts/package_retract.nu",
+#     "scripts/package_retract.nu",
 #     "{{ pkg }}",
 #     "--channel={{ channel }}",
 #     "--versions={{ versions }}",
@@ -272,7 +277,7 @@ cmd = [
 # # the retraction expects AWS credentials to be configured
 # cmd = [
 #     "nu",
-#     ".scripts/package_retract.nu",
+#     "scripts/package_retract.nu",
 #     "{{ pkg }}",
 #     "--channel={{ channel }}",
 #     "--versions={{ versions }}",
@@ -431,14 +436,14 @@ pluginlib = ">=0.10.0,<0.11"
 # Version control tasks
 [feature.version-ctl.tasks.update-version]
 args = [{ arg = "package" }, { arg = "force", default = "false" }]
-cmd = "{{ 'python .scripts/version_ctl.py --update --package ' + package + (' --force' if force == 'true' else '') }}"
+cmd = "{{ 'python scripts/version_ctl.py --update --package ' + package + (' --force' if force == 'true' else '') }}"
 
 [feature.version-ctl.tasks.update-version-force]
 args = [{ arg = "package" }]
-cmd = "{{ 'python .scripts/version_ctl.py --update --package ' + package + ' --force' }}"
+cmd = "{{ 'python scripts/version_ctl.py --update --package ' + package + ' --force' }}"
 
 [feature.version-ctl.tasks.update-version-each]
-cmd = ["python", ".scripts/version_ctl.py", "--update", "--each"]
+cmd = ["python", "scripts/version_ctl.py", "--update", "--each"]
 
 
 [environments.update]

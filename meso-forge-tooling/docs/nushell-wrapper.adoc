@@ -1,0 +1,378 @@
+= Nushell Wrapper Implementation
+:toc:
+:toclevels: 3
+:icons: font
+
+== Overview
+
+The meso-forge wrapper has been refactored from bash to nushell to provide better integration with the existing nushell-based tooling ecosystem. This document covers the implementation details, benefits, and usage of the nushell wrapper.
+
+== Architecture
+
+=== Dual Wrapper System
+
+The package now includes both wrapper implementations:
+
+1. **Primary Nushell Wrapper** (`meso-forge.nu`) - The main implementation
+2. **Bash Shim** (`meso-forge`) - A lightweight wrapper that calls the nushell version
+
+This approach ensures compatibility while leveraging nushell's superior data handling capabilities.
+
+=== File Structure
+
+```
+$CONDA_PREFIX/bin/
+├── meso-forge          # Bash shim executable
+└── meso-forge.nu       # Primary nushell wrapper
+
+$CONDA_PREFIX/share/meso-forge-tooling/
+├── scripts/
+│   ├── meso-forge.nu   # Source nushell wrapper
+│   ├── *.nu           # Other nushell scripts
+│   └── *.py           # Python utilities
+└── pkg-skeletons/     # Package templates
+```
+
+== Implementation Details
+
+=== Environment Detection
+
+The nushell wrapper uses a robust environment detection system:
+
+```nushell
+def get_tooling_root [] {
+    if ($env.MESO_FORGE_TOOLING_ROOT? | is-not-empty) and ($env.MESO_FORGE_TOOLING_ROOT | path exists) {
+        $env.MESO_FORGE_TOOLING_ROOT
+    } else if ($env.CONDA_PREFIX? | is-not-empty) and ([$env.CONDA_PREFIX "share" "meso-forge-tooling"] | path join | path exists) {
+        [$env.CONDA_PREFIX "share" "meso-forge-tooling"] | path join
+    } else if ("./meso-forge-tooling" | path exists) {
+        "./meso-forge-tooling"
+    } else {
+        print $"(ansi red)Error: meso-forge-tooling not found...(ansi reset)"
+        exit 1
+    }
+}
+```
+
+=== Command Dispatching
+
+The wrapper uses nushell's pattern matching for clean command dispatching:
+
+```nushell
+match $command {
+    "build" | "build-pkg" => {
+        # Handle build commands with validation
+    }
+    "publish-pd" => {
+        run_nu_script $scripts_dir "publish.nu" ["--mode" "pd" ...$args]
+    }
+    # ... other commands
+}
+```
+
+=== Error Handling
+
+Enhanced error handling with colored output:
+
+```nushell
+if not ($recipe_path | path exists) {
+    print $"(ansi red)Error: Recipe not found at ($recipe_path)(ansi reset)"
+    print "Available packages:"
+    list_local_packages
+    exit 1
+}
+```
+
+== Benefits of Nushell Implementation
+
+=== 1. **Consistent Tooling Ecosystem**
+- All core functionality uses nushell
+- Better integration between wrapper and scripts
+- Consistent data types and error handling
+
+=== 2. **Enhanced Data Handling**
+- Native support for structured data
+- Better list and table processing
+- Type-safe argument handling
+
+=== 3. **Improved Error Messages**
+- Colored output using `ansi` commands
+- Structured error information
+- Better debugging capabilities
+
+=== 4. **Code Maintainability**
+- More readable pattern matching
+- Functional programming paradigms
+- Better separation of concerns
+
+=== 5. **Cross-Platform Consistency**
+- Uniform behavior across platforms
+- Native path handling
+- Environment variable management
+
+== Key Features
+
+=== Smart Script Detection
+
+The wrapper automatically detects and executes scripts:
+
+```nushell
+# Try .nu extension first, then .py
+let nu_script = $scripts_dir | path join $"($script_name).nu"
+let py_script = $scripts_dir | path join $"($script_name).py"
+
+if ($nu_script | path exists) {
+    run_nu_script $scripts_dir $"($script_name).nu" $script_args
+} else if ($py_script | path exists) {
+    run_py_script $scripts_dir $"($script_name).py" $script_args
+}
+```
+
+=== Enhanced Listing Functions
+
+Improved package and script discovery:
+
+```nushell
+def list_nu_scripts [scripts_dir: string] {
+    if ($scripts_dir | path exists) {
+        let scripts = ls $scripts_dir
+            | where name =~ '\.nu$'
+            | get name
+            | each { |script| $script | path basename | str replace '\.nu$' '' }
+
+        if ($scripts | length) > 0 {
+            $scripts | each { |script| print $"  ($script)" } | ignore
+        } else {
+            print "  No .nu scripts found"
+        }
+    }
+}
+```
+
+=== Robust Package Initialization
+
+Type-safe package creation with validation:
+
+```nushell
+let skeleton_type = $args.0
+let package_name = $args.1
+let source_dir = $skeletons_dir | path join $skeleton_type
+let target_dir = $"./pkgs/($package_name)"
+
+if not ($source_dir | path exists) {
+    print $"(ansi red)Error: Skeleton type '($skeleton_type)' not found(ansi reset)"
+    list_skeletons $skeletons_dir
+    exit 1
+}
+```
+
+== Usage Examples
+
+=== Basic Commands
+
+```bash
+# All these work identically to the bash version
+meso-forge help
+meso-forge config
+meso-forge list-scripts
+meso-forge build my-package
+```
+
+=== Direct Nushell Execution
+
+```bash
+# Call the nushell wrapper directly
+nu meso-forge.nu help
+nu meso-forge.nu build my-package
+
+# From within nushell
+use meso-forge.nu *
+main "build" "my-package"
+```
+
+=== Advanced Usage
+
+```bash
+# Use nushell features directly
+meso-forge list-packages | where $it =~ "python"
+meso-forge config | grep "Tooling root"
+```
+
+== Migration Guide
+
+=== For End Users
+
+No changes required - the bash shim maintains full compatibility:
+
+```bash
+# These continue to work exactly as before
+meso-forge build my-package
+meso-forge publish-pd
+meso-forge test
+```
+
+=== For Developers
+
+When developing or debugging, you can now:
+
+1. **Use the nushell wrapper directly** for better error messages
+2. **Leverage nushell's data processing** for complex operations
+3. **Access structured output** from wrapper functions
+
+=== For CI/CD Systems
+
+The wrapper maintains the same interface:
+
+```yaml
+# GitHub Actions example
+- name: Build packages
+  run: meso-forge build-all
+
+- name: Test packages
+  run: meso-forge test
+
+- name: Publish packages
+  run: meso-forge publish-pd
+```
+
+== Troubleshooting
+
+=== Common Issues
+
+==== "nu: command not found"
+
+*Cause:* Nushell is not installed or not in PATH.
+
+*Solution:*
+```bash
+# Install via conda/pixi
+pixi add nushell
+
+# Or verify installation
+which nu
+nu --version
+```
+
+==== "meso-forge.nu not found"
+
+*Cause:* Package installation issue or incorrect environment.
+
+*Solution:*
+```bash
+# Check installation
+pixi list | grep meso-forge-tooling
+
+# Verify file locations
+ls $CONDA_PREFIX/bin/meso-forge*
+```
+
+==== Permission Denied
+
+*Cause:* Wrapper scripts don't have execute permissions.
+
+*Solution:*
+```bash
+# Fix permissions
+chmod +x $CONDA_PREFIX/bin/meso-forge
+chmod +x $CONDA_PREFIX/bin/meso-forge.nu
+```
+
+=== Debug Mode
+
+Enable detailed debugging:
+
+```bash
+# Debug the bash shim
+bash -x $(which meso-forge) build my-package
+
+# Debug the nushell wrapper
+nu --log-level debug meso-forge.nu build my-package
+```
+
+=== Performance Considerations
+
+The nushell wrapper provides:
+
+- **Faster startup** for repeated operations
+- **Better memory usage** for large dataset operations
+- **More efficient** script discovery and validation
+
+However, for single-command usage, the overhead is minimal.
+
+== Development
+
+=== Adding New Commands
+
+To add commands to the nushell wrapper:
+
+1. **Add match case** in the main function
+2. **Implement validation** if needed
+3. **Call appropriate helper** function
+4. **Update help text**
+
+Example:
+```nushell
+"my-command" => {
+    if ($args | length) == 0 {
+        print $"(ansi red)Error: Argument required(ansi reset)"
+        exit 1
+    }
+    run_nu_script $scripts_dir "my_script.nu" $args
+}
+```
+
+=== Testing Changes
+
+```bash
+# Test basic functionality
+nu meso-forge.nu help
+nu meso-forge.nu config
+
+# Test command execution
+nu meso-forge.nu run test_plugins
+
+# Test error handling
+nu meso-forge.nu build nonexistent-package
+```
+
+=== Code Style
+
+Follow nushell conventions:
+
+- Use `snake_case` for function names
+- Prefer pattern matching over if/else chains
+- Use structured data types (records, tables)
+- Include proper error handling with `ansi` colors
+- Document function parameters and return types
+
+== Future Enhancements
+
+=== Planned Improvements
+
+1. **Native nushell plugin system** integration
+2. **Enhanced structured output** for all commands
+3. **Interactive command selection** menus
+4. **Built-in progress indicators** for long operations
+5. **Configuration file support** (TOML/JSON)
+
+=== Extension Points
+
+The nushell wrapper provides several extension mechanisms:
+
+- **Custom command plugins** via additional .nu files
+- **Data transformation pipelines** for complex workflows
+- **Interactive utilities** using nushell's input system
+- **Integration hooks** for external tools
+
+== See Also
+
+- link:meso-forge-wrapper.adoc[Complete Wrapper Documentation]
+- link:nushell-script-usage.adoc[Nushell Scripts Usage]
+- https://www.nushell.sh/[Official Nushell Documentation]
+- link:../README.adoc[Main Project Documentation]
+
+---
+
+*Last updated: July 2025*
+*Wrapper version: 0.1.9*
+*Nushell version: 0.105.1+*
