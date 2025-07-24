@@ -2,7 +2,7 @@
 schema_version: 1
 
 context:
-  version: "0.1.5"
+  version: "0.1.6"
 
 package:
   name: meso-forge-tooling
@@ -43,7 +43,7 @@ build:
       mkdir -p $PREFIX/etc/conda/activate.d
       cat > $PREFIX/etc/conda/activate.d/meso-forge-tooling.sh << 'EOF'
       export MESO_FORGE_TOOLING_ROOT="$CONDA_PREFIX/share/meso-forge-tooling"
-      export MESO_FORGE_VERSION="0.1.5"
+      export MESO_FORGE_VERSION="0.1.6"
       EOF
 
 requirements:

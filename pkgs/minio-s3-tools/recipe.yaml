@@ -2,7 +2,7 @@
 schema_version: 1
 
 context:
-  version: "0.1.0"
+  version: "0.1.1"
 
 package:
   name: minio-s3-tools
@@ -67,7 +67,7 @@ build:
     mkdir -p $PREFIX/etc/conda/activate.d
     cat > $PREFIX/etc/conda/activate.d/minio-s3-tools.sh << 'ENV_EOF'
     export MINIO_S3_TOOLS_ROOT="$CONDA_PREFIX/share/minio-s3-tools"
-    export MINIO_S3_TOOLS_VERSION="0.1.0"
+    export MINIO_S3_TOOLS_VERSION="0.1.1"
     ENV_EOF
 
 requirements:
