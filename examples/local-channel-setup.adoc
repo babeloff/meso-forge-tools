@@ -1,0 +1,372 @@
+= Consuming Packages from Local MinIO Channel
+:toc:
+:toclevels: 3
+:sectlinks:
+:sectanchors:
+:source-highlighter: highlight.js
+
+This guide shows how to configure pixi projects to consume packages from your local MinIO S3-compatible storage.
+
+== Overview
+
+When you publish packages to your local MinIO server using `pixi run publish-local`, they become available at:
+
+* **S3 URL**: `s3://pixi-local/meso-forge`
+* **HTTP URL**: `http://localhost:19000/pixi-local/meso-forge`
+
+== Configuration Methods
+
+=== Method 1: Direct HTTP Channel (Recommended)
+
+Add the HTTP URL directly to your `pixi.toml` channels:
+
+[source,toml]
+----
+[project]
+name = "my-project"
+channels = [
+    "http://localhost:19000/pixi-local/meso-forge",  # Local MinIO (highest priority)
+    "https://prefix.dev/meso-forge",                 # Public fallback
+    "conda-forge"                                    # Standard packages
+]
+
+[dependencies]
+meso-forge-tooling = "*"
+minio-s3-tools = "*"
+----
+
+=== Method 2: Environment-Specific Configuration
+
+Use different channels for different environments:
+
+[source,toml]
+----
+[project]
+name = "my-project"
+channels = ["conda-forge"]
+
+[feature.local-dev.channels]
+additional = ["http://localhost:19000/pixi-local/meso-forge"]
+
+[feature.production.channels]
+additional = ["https://prefix.dev/meso-forge"]
+
+[environments]
+local = { features = ["local-dev"] }
+prod = { features = ["production"] }
+----
+
+Usage:
+
+[source,bash]
+----
+pixi install -e local    # Uses local MinIO
+pixi install -e prod     # Uses public channel
+----
+
+=== Method 3: Temporary Channel Override
+
+Use channel overrides for one-time installs:
+
+[source,bash]
+----
+# Install from local channel temporarily
+pixi add meso-forge-tooling -c http://localhost:19000/pixi-local/meso-forge
+
+# Or run commands with specific channel
+pixi run --channel http://localhost:19000/pixi-local/meso-forge my-command
+----
+
+== Channel Priority
+
+Channels are resolved in order of appearance. Place your preferred channel first:
+
+[source,toml]
+----
+channels = [
+    "http://localhost:19000/pixi-local/meso-forge",  # 1st priority (local dev)
+    "https://prefix.dev/meso-forge",                 # 2nd priority (public)
+    "conda-forge"                                    # 3rd priority (standard)
+]
+----
+
+== Verification
+
+=== Check Package Sources
+
+After installation, verify which channel provided each package:
+
+[source,bash]
+----
+pixi list | grep -E "(meso-forge|minio-s3)"
+----
+
+Expected output for local packages:
+
+[source,console]
+----
+meso-forge-tooling    0.1.5    h4616a5c_0    145.9 KiB   conda   http://localhost:19000/pixi-local/meso-forge
+minio-s3-tools        0.1.0    h4616a5c_0    42.6 KiB    conda   http://localhost:19000/pixi-local/meso-forge
+----
+
+=== Test Package Functionality
+
+[source,bash]
+----
+# Test meso-forge tooling
+pixi run meso-forge help
+
+# Test MinIO tools
+pixi run manage-minio-credentials --list
+----
+
+== Troubleshooting
+
+=== Channel Not Accessible
+
+If the local channel isn't working:
+
+1. **Check MinIO server status**:
++
+[source,bash]
+----
+curl -I http://localhost:19000/pixi-local/meso-forge/noarch/repodata.json
+----
+
+2. **Verify packages exist**:
++
+[source,bash]
+----
+curl -s http://localhost:19000/pixi-local/meso-forge/noarch/repodata.json | jq '.packages.conda | keys'
+----
+
+3. **Check MinIO server is running**:
++
+[source,bash]
+----
+mc alias list | grep local-minio
+----
+
+=== Package Not Found
+
+If packages aren't found in the local channel:
+
+1. **Rebuild and republish**:
++
+[source,bash]
+----
+pixi run build-all
+pixi run publish-local
+pixi run index-local
+----
+
+2. **Force refresh pixi cache**:
++
+[source,bash]
+----
+pixi clean cache
+pixi install
+----
+
+=== Version Conflicts
+
+If you have version conflicts between local and public channels:
+
+1. **Pin to specific version**:
++
+[source,toml]
+----
+[dependencies]
+meso-forge-tooling = "=0.1.5"  # Exact version
+----
+
+2. **Use channel-specific constraints**:
++
+[source,toml]
+----
+[dependencies]
+meso-forge-tooling = { version = "*", channel = "http://localhost:19000/pixi-local/meso-forge" }
+----
+
+== Example Projects
+
+=== Simple Consumer Project
+
+[source,toml]
+----
+# examples/consumer-project/pixi.toml
+[project]
+name = "meso-forge-consumer-example"
+channels = [
+    "conda-forge",
+    "https://prefix.dev/meso-forge",
+    "http://localhost:19000/pixi-local/meso-forge"
+]
+
+[dependencies]
+meso-forge-tooling = "*"
+minio-s3-tools = "*"
+python = ">=3.9"
+
+[tasks.test-install]
+cmd = "meso-forge help"
+
+[tasks.test-minio]
+cmd = "manage-minio-credentials --help"
+----
+
+=== Package Development Project
+
+[source,toml]
+----
+# examples/package-dev-project/pixi.toml
+[project]
+name = "my-conda-package"
+channels = [
+    "conda-forge",
+    "http://localhost:19000/pixi-local/meso-forge",
+    "https://prefix.dev/meso-forge"
+]
+
+[dependencies]
+meso-forge-tooling = "*"
+minio-s3-tools = "*"
+
+[tasks.init-python-pkg]
+cmd = "meso-forge init-package _skeleton_python my-python-pkg"
+
+[tasks.build]
+cmd = "meso-forge build my-package"
+
+[tasks.publish-local]
+cmd = ["bash", "-c", "meso-forge build-all && pixi run upload-to-minio"]
+
+[feature.build.tasks.upload-to-minio]
+cmd = ["bash", "-c", "rattler-build upload s3 ./output --url http://localhost:19000 --channel s3://pixi-local/my-packages"]
+----
+
+== S3 Authentication (Advanced)
+
+For programmatic access using S3 credentials:
+
+=== Using AWS CLI Configuration
+
+[source,bash]
+----
+# Configure AWS CLI for MinIO
+aws configure set aws_access_key_id 6RSP6F78IACJ143F7G7C
+aws configure set aws_secret_access_key xguDdIQPEcBMNa+O8eKNxbelaoJgn3AGTHzpx7NR
+aws configure set default.region auto
+aws configure set default.s3.endpoint_url http://localhost:19000
+----
+
+=== Using Environment Variables
+
+[source,bash]
+----
+export AWS_ACCESS_KEY_ID=6RSP6F78IACJ143F7G7C
+export AWS_SECRET_ACCESS_KEY=xguDdIQPEcBMNa+O8eKNxbelaoJgn3AGTHzpx7NR
+export AWS_ENDPOINT_URL=http://localhost:19000
+----
+
+=== Using pixi Authentication
+
+[source,bash]
+----
+# Configure pixi to authenticate with your MinIO server
+pixi auth login http://localhost:19000 --username minio --password your-password
+----
+
+== Best Practices
+
+1. **Development Workflow**:
+   - Use local MinIO for active development
+   - Test with public channels before releasing
+   - Keep local and public versions in sync
+
+2. **Channel Ordering**:
+   - Place most trusted/fastest channels first
+   - Local development channels before public ones
+   - Always include conda-forge as fallback
+
+3. **Version Management**:
+   - Use exact versions for production
+   - Use flexible versions for development
+   - Test version updates in local environment first
+
+4. **Security**:
+   - Never commit MinIO credentials to version control
+   - Use environment variables or secure credential storage
+   - Restrict MinIO access to development networks only
+
+== Integration with CI/CD
+
+Example GitHub Actions workflow:
+
+[source,yaml]
+----
+# .github/workflows/test-local-packages.yml
+name: Test Local Packages
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      minio:
+        image: minio/minio
+        ports:
+          - 9000:9000
+        env:
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin
+        options: --health-cmd "curl -f http://localhost:9000/minio/health/live"
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup pixi
+        uses: prefix-dev/setup-pixi@v0.8.1
+        
+      - name: Setup MinIO and publish packages
+        run: |
+          # Configure MinIO
+          pixi run init-minio --url http://localhost:9000
+          
+          # Build and publish to local MinIO
+          pixi run build-all
+          pixi run publish-local --url http://localhost:9000
+          
+      - name: Test package installation
+        run: |
+          cd examples/consumer-project
+          # Update channel URL for CI
+          sed -i 's|localhost:19000|localhost:9000|g' pixi.toml
+          pixi install
+          pixi run test-install
+----
+
+[TIP]
+====
+This setup allows you to develop and test packages locally while maintaining compatibility with public distribution channels.
+====
+
+== Resolution Chain Summary
+
+The complete picture of how S3 channel resolution works:
+
+[source,text]
+----
+Publishing:   s3://pixi-local/meso-forge  → MinIO Server → Storage
+                     ↕ (rattler-build)
+Consuming:    http://localhost:19000/pixi-local/meso-forge  ← HTTP ← MinIO Server
+                     ↕ (pixi install)
+----
+
+[IMPORTANT]
+====
+Pixi **doesn't directly resolve** `s3://pixi-local/meso-forge` as a channel URL. Instead:
+
+1. **Publishing Tools** (rattler-build, rattler-index) use the S3 protocol to store packages
+2. **Consuming Tools** (pixi, conda) access packages via **HTTP URLs**: `http://localhost:19000/pixi-local/meso-forge`
+====

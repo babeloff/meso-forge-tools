@@ -1,0 +1,114 @@
+= meso-forge-tools Examples
+:toc:
+:toclevels: 2
+:sectlinks:
+:sectanchors:
+:source-highlighter: highlight.js
+
+This directory contains example configurations and usage patterns for the meso-forge-tools ecosystem.
+
+== Overview
+
+The examples demonstrate how to:
+
+* Consume packages from local MinIO channels
+* Set up package development environments
+* Configure different deployment scenarios
+* Integrate with CI/CD workflows
+
+== Available Examples
+
+=== link:consumer-project/[Consumer Project]
+
+A simple example showing how to consume `meso-forge-tooling` and `minio-s3-tools` packages in a pixi project.
+
+**Key Features:**
+* Multi-channel configuration (local + public)
+* Basic task definitions
+* Package verification commands
+
+**Files:**
+* `pixi.toml` - Project configuration with channel setup
+
+=== link:package-dev-project/[Package Development Project]
+
+A comprehensive example for developers who want to create and maintain conda packages using the meso-forge tooling.
+
+**Key Features:**
+* Complete development workflow
+* Multi-language package support
+* Build and publish automation
+* Version management integration
+
+**Files:**
+* `pixi.toml` - Full development environment configuration
+
+== Documentation
+
+=== link:local-channel-setup.adoc[Local Channel Setup Guide]
+
+Comprehensive guide covering:
+
+* Channel configuration methods
+* Authentication setup
+* Troubleshooting common issues
+* Best practices and workflows
+* CI/CD integration examples
+
+== Quick Start
+
+=== Testing Consumer Project
+
+[source,bash]
+----
+cd consumer-project
+pixi install
+pixi run test-install
+pixi run test-minio
+----
+
+=== Testing Package Development
+
+[source,bash]
+----
+cd package-dev-project
+pixi install
+pixi run show-help
+pixi run setup-project
+----
+
+== Channel Configuration Summary
+
+All examples use a multi-tier channel strategy:
+
+1. **Local Development**: `http://localhost:19000/pixi-local/meso-forge`
+2. **Public Release**: `https://prefix.dev/meso-forge`
+3. **Standard Packages**: `conda-forge`
+
+This allows seamless development with local packages while falling back to public channels when needed.
+
+== Prerequisites
+
+Before using these examples, ensure you have:
+
+* **pixi** installed and configured
+* **MinIO server** running locally (if using local channels)
+* **meso-forge-tooling** packages built and published
+
+== Support
+
+For issues or questions:
+
+* Check the link:local-channel-setup.adoc[Local Channel Setup Guide]
+* Review the main link:../README.adoc[meso-forge-tools README]
+* Examine the package recipes in link:../pkgs/[../pkgs/]
+
+== Contributing
+
+When adding new examples:
+
+1. Create a descriptive directory name
+2. Include a complete `pixi.toml` configuration
+3. Document the example's purpose and usage
+4. Update this README with the new example
+5. Test the configuration before submitting

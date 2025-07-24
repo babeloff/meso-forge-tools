@@ -110,7 +110,7 @@ export def find_platform_packages [
                 return false
             } else {
                 let recipe = resolve_recipe --recipe $recipe_path
-                if ($recipe == nothing) {
+                if ($recipe | is-empty) {
                     print "❌ Package recipe is missing or defective"
                     return false
                 }
@@ -118,11 +118,11 @@ export def find_platform_packages [
                     print "❌ Package filtered out due to size constraints"
                     return false
                 }
-                if $recipe.build == nothing {
+                if ($recipe.build? | is-empty) {
                     print "❌ Package filtered because build section is missing"
                     return false
                 }
-                if $recipe.build?.noarch? == nothing {
+                if ($recipe.build?.noarch? | is-empty) {
                     print "✅ Package accepted because no build/noarch section is provided"
                     return true
                 }

@@ -1,0 +1,147 @@
+[project]
+name = "my-conda-package"
+version = "0.1.0"
+description = "Example package development using meso-forge tooling from local MinIO"
+authors = ["Developer <dev@example.com>"]
+channels = [
+    "conda-forge",
+    "http://localhost:19000/pixi-local/meso-forge",           # Local MinIO channel (highest priority)
+    "https://prefix.dev/meso-forge"                          # Fallback to public channel
+]
+platforms = ["linux-64", "linux-aarch64"]
+
+[dependencies]
+# Core build tooling from local channel
+meso-forge-tooling = "*"
+minio-s3-tools = "*"
+
+# Development dependencies
+python = ">=3.9"
+git = "*"
+
+# Initialize a new package from skeleton
+[tasks.init-python-pkg]
+cmd = "meso-forge init-package _skeleton_python my-python-pkg"
+
+[tasks.init-rust-pkg]
+cmd = "meso-forge init-package _skeleton_rust my-rust-pkg"
+
+[tasks.init-cpp-pkg]
+cmd = "meso-forge init-package _skeleton_cxx_appl my-cpp-pkg"
+
+# Build tasks
+[tasks.build]
+cmd = "meso-forge build my-package"
+
+[tasks.build-all]
+cmd = "meso-forge build-all"
+
+[tasks.build-dry]
+cmd = "meso-forge build my-package --dry-run"
+
+# Testing tasks
+[tasks.test]
+cmd = "meso-forge test"
+
+[tasks.lint]
+cmd = "meso-forge lint"
+
+# Publishing tasks (to local MinIO)
+[tasks.publish-local]
+cmd = ["bash", "-c", "meso-forge build-all && pixi run -e build publish-to-local"]
+
+# Version management
+[tasks.check-versions]
+cmd = "meso-forge version-update --dry-run --each"
+
+[tasks.update-versions]
+cmd = "meso-forge version-update --each"
+
+# MinIO management
+[tasks.setup-minio]
+cmd = "init-minio"
+
+[tasks.list-credentials]
+cmd = "manage-minio-credentials --list"
+
+[tasks.test-minio-connection]
+cmd = "manage-minio-credentials --test --alias local-minio"
+
+# Project setup
+[tasks.setup-project]
+cmd = [
+    "bash", "-c", """
+    echo 'Setting up package development structure...'
+    mkdir -p pkgs/my-package
+    meso-forge init-package _skeleton_python my-package
+    echo 'Package structure created in pkgs/my-package/'
+    echo 'Edit pkgs/my-package/recipe.yaml to customize your package'
+    echo 'Run: pixi run build to build your package'
+    """
+]
+
+[tasks.show-help]
+cmd = [
+    "bash", "-c", """
+    echo '🚀 meso-forge Package Development Environment'
+    echo '============================================='
+    echo ''
+    echo '📦 Package Initialization:'
+    echo '  pixi run init-python-pkg   # Create Python package skeleton'
+    echo '  pixi run init-rust-pkg     # Create Rust package skeleton'
+    echo '  pixi run init-cpp-pkg      # Create C++ package skeleton'
+    echo ''
+    echo '🔨 Build Commands:'
+    echo '  pixi run build             # Build specific package'
+    echo '  pixi run build-all         # Build all packages'
+    echo '  pixi run build-dry         # Dry run build'
+    echo ''
+    echo '✅ Testing & Quality:'
+    echo '  pixi run test              # Test built packages'
+    echo '  pixi run lint              # Lint recipe files'
+    echo ''
+    echo '🚀 Publishing:'
+    echo '  pixi run publish-local     # Build and publish to local MinIO'
+    echo ''
+    echo '🔍 Version Management:'
+    echo '  pixi run check-versions    # Check for version updates'
+    echo '  pixi run update-versions   # Update package versions'
+    echo ''
+    echo '💾 MinIO Management:'
+    echo '  pixi run setup-minio       # Setup MinIO credentials'
+    echo '  pixi run list-credentials  # List stored credentials'
+    echo ''
+    echo '🏗️  Project Setup:'
+    echo '  pixi run setup-project     # Create example package structure'
+    echo ''
+    echo 'Channel Priority:'
+    echo '  1. http://localhost:19000/pixi-local/meso-forge (local)'
+    echo '  2. https://prefix.dev/meso-forge (public)'
+    echo '  3. conda-forge (standard)'
+    """
+]
+
+[feature.build.dependencies]
+# Additional build dependencies
+rattler-build = ">=0.40.0"
+rattler-index = ">=0.22.4"
+
+# Advanced build tasks
+[feature.build.tasks.publish-to-local]
+cmd = ["bash", "-c", "rattler-build build --recipe ./pkgs/my-package/recipe.yaml --output-dir ./output && rattler-build upload s3 ./output --url http://localhost:19000 --channel s3://pixi-local/my-channel"]
+
+[feature.build.tasks.create-skeleton-dir]
+cmd = ["bash", "-c", "mkdir -p pkgs && echo 'Ready for package development!'"]
+
+[feature.multi-lang.dependencies]
+# Multi-language support
+cmake = "*"
+ninja = "*"
+rust = "*"
+go = "*"
+nodejs = "*"
+
+[environments]
+default = { solve-group = "default" }
+build = { features = ["build"], solve-group = "build" }
+multi-lang = { features = ["build", "multi-lang"], solve-group = "multi-lang" }
