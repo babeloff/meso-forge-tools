@@ -2,7 +2,7 @@
 schema_version: 1
 
 context:
-  version: "0.2.0"
+  version: "0.2.1"
 
 package:
   name: meso-forge-tooling
@@ -49,8 +49,9 @@ build:
       EOF
       chmod +x $PREFIX/bin/meso-forge
 
-      # Install pixi task management wrapper
-      cp meso-forge-tooling/scripts/pixi_tasks_manage.nu $PREFIX/bin/pixi-tasks.nu
+      # Install pixi task management wrapper with corrected module path
+      sed 's|use pixi_tasks_mod.nu \*|use $env.CONDA_PREFIX/share/meso-forge-tooling/scripts/pixi_tasks_mod.nu *|' \
+          meso-forge-tooling/scripts/pixi_tasks_manage.nu > $PREFIX/bin/pixi-tasks.nu
       chmod +x $PREFIX/bin/pixi-tasks.nu
 
       # Create bash shim for pixi task management
@@ -65,7 +66,7 @@ build:
       mkdir -p $PREFIX/etc/conda/activate.d
       cat > $PREFIX/etc/conda/activate.d/meso-forge-tooling.sh << 'EOF'
       export MESO_FORGE_TOOLING_ROOT="$CONDA_PREFIX/share/meso-forge-tooling"
-      export MESO_FORGE_VERSION="0.2.0"
+      export MESO_FORGE_VERSION="0.2.1"
       EOF
 
 requirements:
