@@ -2,7 +2,7 @@
 schema_version: 1
 
 context:
-  version: "0.1.2"
+  version: "0.2.0"
 
 package:
   name: minio-s3-tools
@@ -14,65 +14,69 @@ source:
 build:
   number: 0
   noarch: generic
-  script: |
-    # Create the minio-s3-tools directory structure
-    mkdir -p $PREFIX/share/minio-s3-tools
+  script:
+    interpreter: nu
+    content: |
+      # Create the minio-s3-tools directory structure
+      mkdir ($env.PREFIX | path join "share" "minio-s3-tools")
 
-    # Copy MinIO-related scripts
-    mkdir -p $PREFIX/share/minio-s3-tools/scripts
-    cp minio-s3-tools/scripts/init_minio.nu $PREFIX/share/minio-s3-tools/scripts/
-    cp minio-s3-tools/scripts/manage_minio_credentials.nu $PREFIX/share/minio-s3-tools/scripts/
-    cp minio-s3-tools/scripts/remove_minio_bucket.nu $PREFIX/share/minio-s3-tools/scripts/
-    cp minio-s3-tools/scripts/migrate_auth_to_keyring.nu $PREFIX/share/minio-s3-tools/scripts/
-    cp minio-s3-tools/scripts/test_credentials.nu $PREFIX/share/minio-s3-tools/scripts/
+      # Copy MinIO-related scripts
+      mkdir ($env.PREFIX | path join "share" "minio-s3-tools" "scripts")
+      cp "minio-s3-tools/scripts/init_minio.nu" ($env.PREFIX | path join "share" "minio-s3-tools" "scripts" "init_minio.nu")
+      cp "minio-s3-tools/scripts/manage_minio_credentials.nu" ($env.PREFIX | path join "share" "minio-s3-tools" "scripts" "manage_minio_credentials.nu")
+      cp "minio-s3-tools/scripts/remove_minio_bucket.nu" ($env.PREFIX | path join "share" "minio-s3-tools" "scripts" "remove_minio_bucket.nu")
+      cp "minio-s3-tools/scripts/migrate_auth_to_keyring.nu" ($env.PREFIX | path join "share" "minio-s3-tools" "scripts" "migrate_auth_to_keyring.nu")
+      cp "minio-s3-tools/scripts/test_credentials.nu" ($env.PREFIX | path join "share" "minio-s3-tools" "scripts" "test_credentials.nu")
 
-    # Copy MinIO-related configuration files
-    mkdir -p $PREFIX/share/minio-s3-tools/configs
-    cp minio-s3-tools/configs/auth-local-minio.json.example $PREFIX/share/minio-s3-tools/configs/
+      # Copy MinIO-related configuration files
+      mkdir ($env.PREFIX | path join "share" "minio-s3-tools" "configs")
+      cp "minio-s3-tools/configs/auth-local-minio.json.example" ($env.PREFIX | path join "share" "minio-s3-tools" "configs" "auth-local-minio.json.example")
 
-    # Copy MinIO documentation
-    mkdir -p $PREFIX/share/minio-s3-tools/docs
-    cp minio-s3-tools/docs/minio-setup.adoc $PREFIX/share/minio-s3-tools/docs/
-    cp minio-s3-tools/docs/keyring-commands.adoc $PREFIX/share/minio-s3-tools/docs/
-    cp minio-s3-tools/docs/security-changelog.adoc $PREFIX/share/minio-s3-tools/docs/
+      # Copy MinIO documentation
+      mkdir ($env.PREFIX | path join "share" "minio-s3-tools" "docs")
+      cp "minio-s3-tools/docs/minio-setup.adoc" ($env.PREFIX | path join "share" "minio-s3-tools" "docs" "minio-setup.adoc")
+      cp "minio-s3-tools/docs/keyring-commands.adoc" ($env.PREFIX | path join "share" "minio-s3-tools" "docs" "keyring-commands.adoc")
+      cp "minio-s3-tools/docs/security-changelog.adoc" ($env.PREFIX | path join "share" "minio-s3-tools" "docs" "security-changelog.adoc")
 
-    # Copy license
-    cp common/LICENSE.txt $PREFIX/share/minio-s3-tools/
+      # Copy license
+      cp "common/LICENSE.txt" ($env.PREFIX | path join "share" "minio-s3-tools" "LICENSE.txt")
 
-    # Create wrapper scripts for MinIO commands
-    mkdir -p $PREFIX/bin
+      # Create wrapper scripts for MinIO commands
+      mkdir ($env.PREFIX | path join "bin")
 
-    # Create init-minio wrapper
-    cat > $PREFIX/bin/init-minio << 'WRAPPER_EOF'
-    #!/bin/bash
-    exec nu "$CONDA_PREFIX/share/minio-s3-tools/scripts/init_minio.nu" "$@"
-    WRAPPER_EOF
-    chmod +x $PREFIX/bin/init-minio
+      # Create init-minio wrapper
+      "#!/bin/bash
+      exec nu \"$CONDA_PREFIX/share/minio-s3-tools/scripts/init_minio.nu\" \"$@\"
+      " | save ($env.PREFIX | path join "bin" "init-minio")
+      chmod +x ($env.PREFIX | path join "bin" "init-minio")
 
-    # Create manage-minio-credentials wrapper
-    cat > $PREFIX/bin/manage-minio-credentials << 'WRAPPER_EOF'
-    #!/bin/bash
-    exec nu "$CONDA_PREFIX/share/minio-s3-tools/scripts/manage_minio_credentials.nu" "$@"
-    WRAPPER_EOF
-    chmod +x $PREFIX/bin/manage-minio-credentials
+      # Create manage-minio-credentials wrapper
+      "#!/bin/bash
+      exec nu \"$CONDA_PREFIX/share/minio-s3-tools/scripts/manage_minio_credentials.nu\" \"$@\"
+      " | save ($env.PREFIX | path join "bin" "manage-minio-credentials")
+      chmod +x ($env.PREFIX | path join "bin" "manage-minio-credentials")
 
-    # Create remove-minio-bucket wrapper
-    cat > $PREFIX/bin/remove-minio-bucket << 'WRAPPER_EOF'
-    #!/bin/bash
-    exec nu "$CONDA_PREFIX/share/minio-s3-tools/scripts/remove_minio_bucket.nu" "$@"
-    WRAPPER_EOF
-    chmod +x $PREFIX/bin/remove-minio-bucket
+      # Create remove-minio-bucket wrapper
+      "#!/bin/bash
+      exec nu \"$CONDA_PREFIX/share/minio-s3-tools/scripts/remove_minio_bucket.nu\" \"$@\"
+      " | save ($env.PREFIX | path join "bin" "remove-minio-bucket")
+      chmod +x ($env.PREFIX | path join "bin" "remove-minio-bucket")
 
-    # Create environment activation script
-    mkdir -p $PREFIX/etc/conda/activate.d
-    cat > $PREFIX/etc/conda/activate.d/minio-s3-tools.sh << 'ENV_EOF'
-    export MINIO_S3_TOOLS_ROOT="$CONDA_PREFIX/share/minio-s3-tools"
-    export MINIO_S3_TOOLS_VERSION="0.1.2"
-    ENV_EOF
+      # Create environment activation script
+      mkdir ($env.PREFIX | path join "etc" "conda" "activate.d")
+      let activation_script = [
+        "export MINIO_S3_TOOLS_ROOT=\"$CONDA_PREFIX/share/minio-s3-tools\""
+        "export MINIO_S3_TOOLS_VERSION=\"0.2.0\""
+      ] | str join "\n"
+      $activation_script | save ($env.PREFIX | path join "etc" "conda" "activate.d" "minio-s3-tools.sh")
+      chmod +x ($env.PREFIX | path join "etc" "conda" "activate.d" "minio-s3-tools.sh")
 
 requirements:
+  build:
+    - nushell >=0.105.1
   host:
     - python >=3.9
+    - nushell >=0.105.1
   run:
     - nushell >=0.105.1
     - minio
@@ -82,39 +86,88 @@ requirements:
     - pyyaml >=6.0.2
 
 tests:
-  - script: |
-      # Test that the MinIO command wrappers are available
-      which init-minio
-      which manage-minio-credentials
-      which remove-minio-bucket
+  - script:
+      interpreter: nu
+      content: |
+        # Test that the MinIO command wrappers are available
+        let commands = ["init-minio", "manage-minio-credentials", "remove-minio-bucket"]
+        for command in $commands {
+          if not (which $command | is-not-empty) {
+            error make {msg: $"Command ($command) not found in PATH"}
+          }
+        }
 
-      # Test that tooling files are accessible
-      test -d "$CONDA_PREFIX/share/minio-s3-tools/scripts"
-      test -d "$CONDA_PREFIX/share/minio-s3-tools/configs"
-      test -d "$CONDA_PREFIX/share/minio-s3-tools/docs"
+        # Test that tooling files are accessible
+        let required_dirs = [
+          "share/minio-s3-tools/scripts"
+          "share/minio-s3-tools/configs"
+          "share/minio-s3-tools/docs"
+        ]
 
-      # Test that required scripts exist
-      test -f "$CONDA_PREFIX/share/minio-s3-tools/scripts/init_minio.nu"
-      test -f "$CONDA_PREFIX/share/minio-s3-tools/scripts/manage_minio_credentials.nu"
-      test -f "$CONDA_PREFIX/share/minio-s3-tools/scripts/remove_minio_bucket.nu"
+        for dir in $required_dirs {
+          let full_path = ($env.CONDA_PREFIX | path join $dir)
+          if not ($full_path | path exists) {
+            error make {msg: $"Required directory not found: ($dir)"}
+          }
+        }
 
-      # Test that documentation exists
-      test -f "$CONDA_PREFIX/share/minio-s3-tools/docs/minio-setup.adoc"
-      test -f "$CONDA_PREFIX/share/minio-s3-tools/docs/keyring-commands.adoc"
+        # Test that required scripts exist
+        let required_scripts = [
+          "share/minio-s3-tools/scripts/init_minio.nu"
+          "share/minio-s3-tools/scripts/manage_minio_credentials.nu"
+          "share/minio-s3-tools/scripts/remove_minio_bucket.nu"
+        ]
 
-      # Test that configuration examples exist
-      test -f "$CONDA_PREFIX/share/minio-s3-tools/configs/auth-local-minio.json.example"
+        for script in $required_scripts {
+          let full_path = ($env.CONDA_PREFIX | path join $script)
+          if not ($full_path | path exists) {
+            error make {msg: $"Required script not found: ($script)"}
+          }
+        }
 
-      # Test that environment variables are set
-      test -n "$MINIO_S3_TOOLS_ROOT"
-      test -n "$MINIO_S3_TOOLS_VERSION"
+        # Test that documentation exists
+        let required_docs = [
+          "share/minio-s3-tools/docs/minio-setup.adoc"
+          "share/minio-s3-tools/docs/keyring-commands.adoc"
+        ]
 
-      # Test help commands (basic functionality)
-      init-minio --help
-      manage-minio-credentials --help
-      remove-minio-bucket --help
+        for doc in $required_docs {
+          let full_path = ($env.CONDA_PREFIX | path join $doc)
+          if not ($full_path | path exists) {
+            error make {msg: $"Required documentation not found: ($doc)"}
+          }
+        }
 
-      echo "All minio-s3-tools tests passed!"
+        # Test that configuration examples exist
+        let config_file = ($env.CONDA_PREFIX | path join "share" "minio-s3-tools" "configs" "auth-local-minio.json.example")
+        if not ($config_file | path exists) {
+          error make {msg: "Configuration example file not found"}
+        }
+
+        # Source the conda activation script to set up environment (using bash for sourcing)
+        bash -c "source $env.CONDA_PREFIX/etc/conda/activate.d/minio-s3-tools.sh && env" | lines | each { |line|
+          if ($line | str contains "=") {
+            let parts = ($line | split column "=" key value)
+            if ($parts.key.0 | str starts-with "MINIO_S3_TOOLS") {
+              load-env {($parts.key.0): ($parts.value.0)}
+            }
+          }
+        }
+
+        # Test that environment variables are set
+        if ($env.MINIO_S3_TOOLS_ROOT? | is-empty) {
+          error make {msg: "MINIO_S3_TOOLS_ROOT not set"}
+        }
+        if ($env.MINIO_S3_TOOLS_VERSION? | is-empty) {
+          error make {msg: "MINIO_S3_TOOLS_VERSION not set"}
+        }
+
+        # Test help commands (basic functionality)
+        run-external "init-minio" ["--help"]
+        run-external "manage-minio-credentials" ["--help"]
+        run-external "remove-minio-bucket" ["--help"]
+
+        print "All minio-s3-tools tests passed!"
 
 about:
   homepage: https://github.com/phreed/meso-forge-tools

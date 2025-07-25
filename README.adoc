@@ -24,22 +24,29 @@ pixi global install meso-forge-tooling -c https://prefix.dev/meso-forge
 
 == Usage
 
-=== Using the meso-forge command
+=== Using the meso-forge commands
 
-The `meso-forge.nu` script provides a unified interface to all build, test, and publishing operations:
+The meso-forge tooling provides individual command scripts for all build, test, and publishing operations:
 
 [source,bash]
 ----
 # Run through pixi (recommended)
-pixi run meso-forge help
-pixi run meso-forge build <package-name>
-pixi run meso-forge build-all
-pixi run meso-forge test-package <package-name>
-pixi run meso-forge publish-local
+pixi run build-all
+pixi run build-pkg <package-name>
+pixi run test-packages
+pixi run publish-local
 
-# Direct execution (requires nushell in PATH)
-./meso-forge-tooling/scripts/meso-forge.nu help
-./meso-forge-tooling/scripts/meso-forge.nu build <package-name>
+# Direct execution using trampoline scripts
+meso-forge-build-all
+meso-forge-build-single --recipe pkgs/<package-name>/recipe.yaml
+meso-forge-test-packages
+meso-forge-publish
+
+# Available trampoline commands:
+# meso-forge-build-all, meso-forge-build-noarch, meso-forge-build-platform
+# meso-forge-build-single, meso-forge-publish, meso-forge-test-packages
+# meso-forge-check-package, meso-forge-retract, meso-forge-lint-recipes
+# meso-forge-pixi-analyze, meso-forge-pixi-update
 ----
 
 === Common workflows

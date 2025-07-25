@@ -4,7 +4,7 @@
 # This script provides a unified interface to analyze and update meso-forge tasks in pixi.toml files
 
 use std log
-use pixi_tasks_mod.nu *
+use ./pixi_tasks_mod.nu *
 
 def main [
     command: string                        # Command to execute: analyze, update, or help

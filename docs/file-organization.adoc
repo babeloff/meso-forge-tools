@@ -39,7 +39,7 @@ These files are used by both packages:
 
 * `meso-forge` - Main command entry point
 * `build_*.nu` - Build system scripts (build_all, build_mod, build_noarch, build_platform, build_single)
-* `publish*.nu` - Publishing scripts (publish, publish_mod)
+* `publish*.nu` - Publishing scripts (publish, package_publish_mod)
 * `lint_recipes.nu` - Recipe validation
 * `test_package*.nu` - Testing scripts (test_package, test_packages)
 * `check_package_exists.nu` - Package existence verification

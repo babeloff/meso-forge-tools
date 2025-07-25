@@ -78,9 +78,7 @@ cwd = "."
 arg = "platform"
 default = "linux-64"
 
-[tasks.meso-forge]
-cmd = "nu meso-forge-tooling/scripts/meso-forge.nu"
-cwd = "."
+
 
 [tasks.build-pkg]
 cmd = [
