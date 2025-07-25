@@ -5,20 +5,17 @@ name = "meso-forge"
 version = "0.1.1"
 description = "Multi-package build suite"
 authors = ["Fred Eisele <fred.eisele@vanderbilt.edu>"]
-channels = ["conda-forge", "https://prefix.dev/meso-forge"]
-
+channels = [
+    "conda-forge",
+    "https://prefix.dev/meso-forge",
+]
 platforms = [
-    # "osx-arm64",
     "linux-64",
     "linux-aarch64",
-    # "wasi-wasm32",
-    # "win-64",
-    # "osx-64",
 ]
 preview = ["pixi-build"]
 
 [dependencies]
-# Core build dependencies available on all platforms
 rattler-build = ">=0.44.0,<0.50"
 rattler-index = ">=0.22.4,<0.23"
 git = ">=2.49.0,<3.0"
@@ -31,7 +28,6 @@ libzlib = ">=1.3.0,<2.0"
 requests = ">=2.32.4,<3"
 semver = ">=3.0.4,<4"
 
-# Platform-specific build dependencies
 [target.linux-64.dependencies]
 gcc_linux-64 = "*"
 gxx_linux-64 = "*"
@@ -40,199 +36,198 @@ gxx_linux-64 = "*"
 gcc_linux-aarch64 = "*"
 gxx_linux-aarch64 = "*"
 
-# Build all packages for current platform
 [tasks.build-all]
-cmd = ["nu", "meso-forge-tooling/scripts/build_all.nu"]
+cmd = [
+    "nu",
+    "meso-forge-tooling/scripts/build_all.nu",
+]
 cwd = "."
 
-# Build specific package types
 [tasks.build-noarch]
-cmd = ["nu", "meso-forge-tooling/scripts/build_noarch.nu"]
+cmd = [
+    "nu",
+    "meso-forge-tooling/scripts/build_noarch.nu",
+]
 cwd = "."
 
 [tasks.build-platform]
-cmd = ["nu", "meso-forge-tooling/scripts/build_platform.nu"]
-cwd = "."
-
-# Build for all platforms
-[tasks.build-all-platforms]
-cmd = ["nu", "meso-forge-tooling/scripts/build_platform.nu", "--all-platforms"]
-cwd = "."
-
-# Build for specific platform
-[tasks.build-for-platform]
-args = [
-   {arg = "platform", default = "linux-64" },
+cmd = [
+    "nu",
+    "meso-forge-tooling/scripts/build_platform.nu",
 ]
-cmd = ["nu", "meso-forge-tooling/scripts/build_platform.nu", "--platform", "{{ platform }}"]
 cwd = "."
 
-# Main meso-forge wrapper command
+[tasks.build-all-platforms]
+cmd = [
+    "nu",
+    "meso-forge-tooling/scripts/build_platform.nu",
+    "--all-platforms",
+]
+cwd = "."
+
+[tasks.build-for-platform]
+cmd = [
+    "nu",
+    "meso-forge-tooling/scripts/build_platform.nu",
+    "--platform",
+    "{{ platform }}",
+]
+cwd = "."
+
+[[tasks.build-for-platform.args]]
+arg = "platform"
+default = "linux-64"
+
 [tasks.meso-forge]
 cmd = "nu meso-forge-tooling/scripts/meso-forge.nu"
 cwd = "."
 
-# Individual package builds (examples)
 [tasks.build-pkg]
-args = [
-   {arg = "pkg", default = "asciidoctor-revealjs" },
+cmd = [
+    "nu",
+    "meso-forge-tooling/scripts/build_single.nu",
+    "--recipe",
+    "pkgs/{{ pkg }}/recipe.yaml",
 ]
-cmd = ["nu", "meso-forge-tooling/scripts/build_single.nu", "--recipe", "pkgs/{{ pkg }}/recipe.yaml"]
 cwd = "."
+
+[[tasks.build-pkg.args]]
+arg = "pkg"
+default = "asciidoctor-revealjs"
 
 [tasks.build-dry]
-args = [
-   {arg = "pkg", default = "asciidoctor-revealjs" },
+cmd = [
+    "nu",
+    "meso-forge-tooling/scripts/build_single.nu",
+    "--recipe",
+    "pkgs/{{ pkg }}/recipe.yaml",
+    "--dry-run",
 ]
-cmd = ["nu", "meso-forge-tooling/scripts/build_single.nu", "--recipe", "pkgs/{{ pkg }}/recipe.yaml", "--dry-run"]
 cwd = "."
 
-# Clean build artifacts
+[[tasks.build-dry.args]]
+arg = "pkg"
+default = "asciidoctor-revealjs"
+
 [tasks.clean]
 cmd = "rm -rf output/"
 cwd = "."
 
-# Lint all recipes
 [tasks.lint-recipes]
-cmd = ["nu", "meso-forge-tooling/scripts/lint_recipes.nu"]
+cmd = [
+    "nu",
+    "meso-forge-tooling/scripts/lint_recipes.nu",
+]
 cwd = "."
 
 [tasks.lint-recipes-fix]
-cmd = ["nu", "meso-forge-tooling/scripts/lint_recipes.nu", "--fix"]
+cmd = [
+    "nu",
+    "meso-forge-tooling/scripts/lint_recipes.nu",
+    "--fix",
+]
 cwd = "."
 
-
-# Test built packages
 [tasks.test-packages]
-cmd = ["nu", "meso-forge-tooling/scripts/test_packages.nu"]
+cmd = [
+    "nu",
+    "meso-forge-tooling/scripts/test_packages.nu",
+]
 cwd = "."
 
 [tasks.test-platform]
-cmd = ["nu", "meso-forge-tooling/scripts/test_packages.nu", "--platform"]
+cmd = [
+    "nu",
+    "meso-forge-tooling/scripts/test_packages.nu",
+    "--platform",
+]
 cwd = "."
 
 [tasks.test-package]
-cmd = ["nu", "meso-forge-tooling/scripts/test_packages.nu", "--package"]
-cwd = "."
-
-
-# Platform-specific build environments
-[environments]
-# Default environment for the current platform
-default = { solve-group = "default" }
-
-# Cross-compilation environment (typically run on linux-64)
-[environments.cross-build]
-features = ["cross-compile"]
-solve-group = "cross-build"
-
-[environments.python-build]
-features = ["python-packages"]
-solve-group = "python-build"
-
-[environments.cpp-build]
-features = ["cpp-packages"]
-solve-group = "cpp-build"
-
-[environments.full-build]
-features = ["python-packages", "cpp-packages", "cross-compile"]
-solve-group = "full-build"
-
-[environments.dev]
-features = ["dev-tools"]
-solve-group = "dev"
-
-
-# [tasks.analyze-recipes]
-# cmd = ["python", "scripts/analyze_recipes.py"]
-
-# [tasks.fix-recipe-indentation]
-# cmd = ["python", "scripts/fix_recipe_indentation.py"]
-
-# [tasks.generate-readmes]
-# cmd = ["python", "scripts/generate_readmes.py"]
-
-[feature.cross-compile.dependencies]
-# Additional dependencies needed for cross-compilation
-# Most cross-compilation with rattler-build works without additional tools
-# qemu-user-static = "*"  # For emulation if needed
-
-# Example feature for specific package groups
-[feature.cpp-packages.dependencies]
-"cmake" = "*"
-"ninja" = "*"
-"pkg-config" = "*"
-
-[feature.python-packages.dependencies]
-"python" = ">=3.12,<4.0"
-"setuptools" = "*"
-"wheel" = "*"
-"pip" = "*"
-
-
-[tasks.publish-pd]
-args = [
-    {arg = "force", default = "" },
-    {arg = "channel", default = "meso-forge" },
+cmd = [
+    "nu",
+    "meso-forge-tooling/scripts/test_packages.nu",
+    "--package",
 ]
 cwd = "."
-# the upload expects the RATTLER_AUTH_FILE variable to be set
+
+[tasks.publish-pd]
+cwd = "."
 cmd = [
     "nu",
     "meso-forge-tooling/scripts/package_publish.nu",
-    "--mode", "pd",
-    "--channel", "{{ channel }}",
+    "--mode",
+    "pd",
+    "--channel",
+    "{{ channel }}",
     "{{ '--force' if force != '' else '' }}",
 ]
 
+[[tasks.publish-pd.args]]
+arg = "force"
+default = ""
+
+[[tasks.publish-pd.args]]
+arg = "channel"
+default = "meso-forge"
+
 [tasks.publish-s3]
-args = [
-    {arg = "force", default = "" },
-    {arg = "dry_run", default = "" },
-    {arg = "channel", default = "s3://pixi/meso-forge" },
-    {arg = "url", default = "https://minio.isis.vanderbilt.edu" },
-]
 cwd = "."
-# the upload expects the RATTLER_AUTH_FILE variable to be set
 cmd = [
     "nu",
     "meso-forge-tooling/scripts/package_publish.nu",
-    "--mode", "s3",
-    "--channel", "{{ channel }}",
-    "--url", "{{ url }}",
+    "--mode",
+    "s3",
+    "--channel",
+    "{{ channel }}",
+    "--url",
+    "{{ url }}",
     "{{ '--force' if force != '' else '' }}",
     "{{ '--dry-run' if dry_run != '' else '' }}",
 ]
 
+[[tasks.publish-s3.args]]
+arg = "force"
+default = ""
+
+[[tasks.publish-s3.args]]
+arg = "dry_run"
+default = ""
+
+[[tasks.publish-s3.args]]
+arg = "channel"
+default = "s3://pixi/meso-forge"
+
+[[tasks.publish-s3.args]]
+arg = "url"
+default = "https://minio.isis.vanderbilt.edu"
+
 [tasks.publish-local]
-args = [
-    { arg = "force", default = "" },
-    { arg = "channel", default = "s3://pixi-local/meso-forge" },
-    { arg = "url", default = "http://localhost:19000" },
-]
-# the upload expects the RATTLER_AUTH_FILE variable to be set
 cmd = [
     "nu",
     "meso-forge-tooling/scripts/package_publish.nu",
-    "--mode", "s3",
-    "--channel", "{{ channel }}",
-    "--url", "{{ url }}",
+    "--mode",
+    "s3",
+    "--channel",
+    "{{ channel }}",
+    "--url",
+    "{{ url }}",
     "{{ '--force' if force != '' else '' }}",
 ]
 
-# [tasks.publish-status]
-# cmd = ["nu", "-c", "use scripts/package_publish.nu *; publish-status"]
+[[tasks.publish-local.args]]
+arg = "force"
+default = ""
 
-# Package retraction tasks
+[[tasks.publish-local.args]]
+arg = "channel"
+default = "s3://pixi-local/meso-forge"
+
+[[tasks.publish-local.args]]
+arg = "url"
+default = "http://localhost:19000"
+
 [tasks.retract-pd]
-args = [
-    { arg = "pkg", default = "_skeleton_python" },
-    { arg = "channel", default = "meso-forge" },
-    { arg = "versions", default = "1.0.0" },
-    { arg = "tgt_platform", default = "linux-64" },
-    { arg = "force", default = "" },
-]
-# the retraction expects the RATTLER_AUTH_FILE variable to be set
 cmd = [
     "nu",
     "meso-forge-tooling/scripts/package_retract.nu",
@@ -244,54 +239,27 @@ cmd = [
     "{{ '--force' if force != '' else '' }}",
 ]
 
-# [tasks.retract-s3]
-# args = [
-#     { arg = "pkg", default = "_skeleton_python" },
-#     { arg = "channel", default = "s3://pixi/meso-forge" },
-#     { arg = "versions", default = "1.0.0" },
-#     { arg = "tgt_platform", default = "linux-64" },
-#     { arg = "url", default = "https://minio.isis.vanderbilt.edu" },
-#     { arg = "force", default = "" },
-# ]
-# # the retraction expects AWS credentials to be configured
-# cmd = [
-#     "nu",
-#     "scripts/package_retract.nu",
-#     "{{ pkg }}",
-#     "--channel={{ channel }}",
-#     "--versions={{ versions }}",
-#     "--method=s3",
-#     "--url={{ url }}",
-#     "--target-platform={{ tgt_platform }}",
-#     "{{ '--force' if force != '' else '' }}",
-# ]
+[[tasks.retract-pd.args]]
+arg = "pkg"
+default = "_skeleton_python"
 
-# [tasks.retract-s3-local]
-# args = [
-#     { arg = "pkg", default = "_skeleton_python" },
-#     { arg = "channel", default = "s3://pixi-local/meso-forge" },
-#     { arg = "versions", default = "1.0.0" },
-#     { arg = "tgt_platform", default = "linux-64" },
-#     { arg = "force", default = "" },
-# ]
-# # the retraction expects AWS credentials to be configured
-# cmd = [
-#     "nu",
-#     "scripts/package_retract.nu",
-#     "{{ pkg }}",
-#     "--channel={{ channel }}",
-#     "--versions={{ versions }}",
-#     "--method=s3",
-#     "--url=http://localhost",
-#     "--target-platform={{ tgt_platform }}",
-#     "{{ '--force' if force != '' else '' }}",
-# ]
+[[tasks.retract-pd.args]]
+arg = "channel"
+default = "meso-forge"
+
+[[tasks.retract-pd.args]]
+arg = "versions"
+default = "1.0.0"
+
+[[tasks.retract-pd.args]]
+arg = "tgt_platform"
+default = "linux-64"
+
+[[tasks.retract-pd.args]]
+arg = "force"
+default = ""
 
 [tasks.index-s3]
-args = [
-    { arg = "url", default = "https://minio.isis.vanderbilt.edu" },
-    { arg = "channel", default = "s3://pixi/meso-forge" },
-]
 cmd = [
     "rattler-index",
     "s3",
@@ -305,117 +273,215 @@ cmd = [
     "true",
 ]
 
-[tasks.index-local]
-depends-on = [
-    { task = "index-s3", args = ["http://localhost:19000", "s3://pixi-local/meso-forge"] }
+[[tasks.index-s3.args]]
+arg = "url"
+default = "https://minio.isis.vanderbilt.edu"
+
+[[tasks.index-s3.args]]
+arg = "channel"
+default = "s3://pixi/meso-forge"
+
+[[tasks.index-local.depends-on]]
+task = "index-s3"
+args = [
+    "http://localhost:19000",
+    "s3://pixi-local/meso-forge",
 ]
 
-# MinIO initialization tasks
 [tasks.init-minio]
 description = "Initialize local MinIO client for conda packages (secure - auto-detects credentials)"
-cmd = ["nu", "minio-s3-tools/scripts/init_minio.nu"]
+cmd = [
+    "nu",
+    "minio-s3-tools/scripts/init_minio.nu",
+]
 cwd = "."
 
 [tasks.init-minio-custom]
-args = [
-    { arg = "url", default = "http://localhost:19000" },
-    { arg = "bucket", default = "meso-forge" },
-    { arg = "interactive", default = "false" }
-]
 description = "Initialize MinIO with custom parameters (secure - no credential args)"
 cmd = [
-    "nu", "minio-s3-tools/scripts/init_minio.nu",
-    "--url", "{{ url }}",
-    "--bucket", "{{ bucket }}",
-    "{{ '--interactive' if interactive == 'true' else '' }}"
+    "nu",
+    "minio-s3-tools/scripts/init_minio.nu",
+    "--url",
+    "{{ url }}",
+    "--bucket",
+    "{{ bucket }}",
+    "{{ '--interactive' if interactive == 'true' else '' }}",
 ]
 cwd = "."
 
-# New secure MinIO management tasks
+[[tasks.init-minio-custom.args]]
+arg = "url"
+default = "http://localhost:19000"
+
+[[tasks.init-minio-custom.args]]
+arg = "bucket"
+default = "meso-forge"
+
+[[tasks.init-minio-custom.args]]
+arg = "interactive"
+default = "false"
+
 [tasks.init-minio-interactive]
 description = "Initialize MinIO with interactive credential entry (secure)"
-cmd = ["nu", "minio-s3-tools/scripts/init_minio.nu", "--interactive"]
+cmd = [
+    "nu",
+    "minio-s3-tools/scripts/init_minio.nu",
+    "--interactive",
+]
 cwd = "."
 
 [tasks.minio-list-credentials]
 description = "List all stored MinIO credentials"
-cmd = ["nu", "minio-s3-tools/scripts/manage_minio_credentials.nu", "--list"]
+cmd = [
+    "nu",
+    "minio-s3-tools/scripts/manage_minio_credentials.nu",
+    "--list",
+]
 cwd = "."
 
 [tasks.minio-add-alias]
-args = [
-    { arg = "alias", default = "production" },
-    { arg = "url", default = "https://minio.example.com" }
-]
 description = "Add new MinIO alias with secure credential handling"
 cmd = [
-    "nu", "minio-s3-tools/scripts/manage_minio_credentials.nu",
+    "nu",
+    "minio-s3-tools/scripts/manage_minio_credentials.nu",
     "--add",
-    "--alias", "{{ alias }}",
-    "--url", "{{ url }}",
-    "--interactive"
+    "--alias",
+    "{{ alias }}",
+    "--url",
+    "{{ url }}",
+    "--interactive",
 ]
 cwd = "."
+
+[[tasks.minio-add-alias.args]]
+arg = "alias"
+default = "production"
+
+[[tasks.minio-add-alias.args]]
+arg = "url"
+default = "https://minio.example.com"
 
 [tasks.minio-test-alias]
-args = [{ arg = "alias", default = "local-minio" }]
 description = "Test MinIO alias connection"
 cmd = [
-    "nu", "minio-s3-tools/scripts/manage_minio_credentials.nu",
+    "nu",
+    "minio-s3-tools/scripts/manage_minio_credentials.nu",
     "--test",
-    "--alias", "{{ alias }}"
+    "--alias",
+    "{{ alias }}",
 ]
 cwd = "."
 
+[[tasks.minio-test-alias.args]]
+arg = "alias"
+default = "local-minio"
+
 [tasks.minio-remove-alias]
-args = [{ arg = "alias", default = "local-minio" }]
 description = "Remove MinIO alias and all associated credentials"
 cmd = [
-    "nu", "minio-s3-tools/scripts/manage_minio_credentials.nu",
+    "nu",
+    "minio-s3-tools/scripts/manage_minio_credentials.nu",
     "--remove",
-    "--alias", "{{ alias }}"
+    "--alias",
+    "{{ alias }}",
 ]
 cwd = "."
+
+[[tasks.minio-remove-alias.args]]
+arg = "alias"
+default = "local-minio"
 
 [tasks.remove-minio-bucket]
 description = "Remove local MinIO bucket and clean up credentials"
 cmd = [
-    "nu", "minio-s3-tools/scripts/remove_minio_bucket.nu",
-    "--server", "http://localhost:19000",
-    "--bucket", "meso-forge",
-    "--alias", "local-minio"
+    "nu",
+    "minio-s3-tools/scripts/remove_minio_bucket.nu",
+    "--server",
+    "http://localhost:19000",
+    "--bucket",
+    "meso-forge",
+    "--alias",
+    "local-minio",
 ]
 cwd = "."
 
 [tasks.remove-minio-bucket-dry-run]
 description = "Preview MinIO bucket removal (dry run)"
 cmd = [
-    "nu", "minio-s3-tools/scripts/remove_minio_bucket.nu",
-    "--server", "http://localhost:19000",
-    "--bucket", "meso-forge",
-    "--alias", "local-minio",
-    "--dry-run"
+    "nu",
+    "minio-s3-tools/scripts/remove_minio_bucket.nu",
+    "--server",
+    "http://localhost:19000",
+    "--bucket",
+    "meso-forge",
+    "--alias",
+    "local-minio",
+    "--dry-run",
 ]
 cwd = "."
 
 [tasks.migrate-auth-to-keyring]
 description = "Migrate RATTLER_AUTH_FILE credentials to platform keyring (dry run)"
 cmd = [
-    "nu", "minio-s3-tools/scripts/migrate_auth_to_keyring.nu",
-    "--dry-run"
+    "nu",
+    "minio-s3-tools/scripts/migrate_auth_to_keyring.nu",
+    "--dry-run",
 ]
 cwd = "."
 
 [tasks.migrate-auth-to-keyring-execute]
 description = "Migrate RATTLER_AUTH_FILE credentials to platform keyring"
 cmd = [
-    "nu", "minio-s3-tools/scripts/migrate_auth_to_keyring.nu"
+    "nu",
+    "minio-s3-tools/scripts/migrate_auth_to_keyring.nu",
 ]
 cwd = "."
 
-# Development tools feature for local setup
+[environments.default]
+solve-group = "default"
+
+[environments.cross-build]
+features = ["cross-compile"]
+solve-group = "cross-build"
+
+[environments.python-build]
+features = ["python-packages"]
+solve-group = "python-build"
+
+[environments.cpp-build]
+features = ["cpp-packages"]
+solve-group = "cpp-build"
+
+[environments.full-build]
+features = [
+    "python-packages",
+    "cpp-packages",
+    "cross-compile",
+]
+solve-group = "full-build"
+
+[environments.dev]
+features = ["dev-tools"]
+solve-group = "dev"
+
+[environments.update]
+features = ["version-ctl"]
+
+[feature.cross-compile.dependencies]
+
+[feature.cpp-packages.dependencies]
+cmake = "*"
+ninja = "*"
+pkg-config = "*"
+
+[feature.python-packages.dependencies]
+python = ">=3.12,<4.0"
+setuptools = "*"
+wheel = "*"
+pip = "*"
+
 [feature.dev-tools.dependencies]
-minio = "*"  # MinIO client for local S3-compatible storage
+minio = "*"
 
 [feature.version-ctl.dependencies]
 python = "3.12.*"
@@ -426,34 +492,32 @@ semver = ">=3.0.2,<4"
 py-rattler = ">=0.1.0"
 aiohttp = ">=3.9.0,<4"
 urllib3 = ">=2.5.0,<3.0"
-# Language servers for Zed editor
 pyright = ">=1.1.402,<1.2.0"
 ruff = ">=0.12.0,<=0.13.0"
 
 [feature.version-ctl.pypi-dependencies]
 pluginlib = ">=0.10.0,<0.11"
 
-# Version control tasks
 [feature.version-ctl.tasks.update-version]
-args = [{ arg = "package" }, { arg = "force", default = "false" }]
 cmd = "{{ 'python scripts/version_ctl.py --update --package ' + package + (' --force' if force == 'true' else '') }}"
 
+[[feature.version-ctl.tasks.update-version.args]]
+arg = "package"
+
+[[feature.version-ctl.tasks.update-version.args]]
+arg = "force"
+default = "false"
+
 [feature.version-ctl.tasks.update-version-force]
-args = [{ arg = "package" }]
 cmd = "{{ 'python scripts/version_ctl.py --update --package ' + package + ' --force' }}"
 
+[[feature.version-ctl.tasks.update-version-force.args]]
+arg = "package"
+
 [feature.version-ctl.tasks.update-version-each]
-cmd = ["python", "scripts/version_ctl.py", "--update", "--each"]
-
-
-[environments.update]
-features = ["version-ctl"]
-
-# # Zed editor tasks
-# [tasks.zed-env-default]
-# description = "Configure Zed to use default pixi environment"
-# cmd = ["nu", "-c", "open .zed/settings.json | upsert python.interpreter.path '.pixi/envs/default/bin/python' | upsert lsp.pyright.initialization_options.settings.python.pythonPath '.pixi/envs/default/bin/python' | upsert lsp.pyright.initialization_options.settings.python.defaultInterpreterPath '.pixi/envs/default/bin/python' | upsert env.PIXI_ENVIRONMENT 'default' | save .zed/settings.json"]
-
-# [tasks.zed-env-update]
-# description = "Configure Zed to use update pixi environment (with Python tools)"
-# cmd = ["nu", "-c", "open .zed/settings.json | upsert python.interpreter.path '.pixi/envs/update/bin/python' | upsert lsp.pyright.initialization_options.settings.python.pythonPath '.pixi/envs/update/bin/python' | upsert lsp.pyright.initialization_options.settings.python.defaultInterpreterPath '.pixi/envs/update/bin/python' | upsert env.PIXI_ENVIRONMENT 'update' | save .zed/settings.json"]
+cmd = [
+    "python",
+    "scripts/version_ctl.py",
+    "--update",
+    "--each",
+]

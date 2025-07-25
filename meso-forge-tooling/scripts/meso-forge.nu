@@ -3,6 +3,8 @@
 # meso-forge - Multi-package build suite wrapper (Nushell version)
 # Comprehensive wrapper for all meso-forge-tooling nushell scripts and Python utilities
 
+
+
 def main [
     command?: string = "help"  # Command to execute
     ...args: string           # Additional arguments passed to the command
@@ -181,6 +183,15 @@ def main [
             print ""
             print "Available Python scripts:"
             list_py_scripts $scripts_dir
+        }
+
+        # Pixi task management commands
+        "analyze-tasks" | "pixi-analyze" => {
+            run_nu_script $scripts_dir "pixi_tasks_manage.nu" ["analyze" ...$args]
+        }
+
+        "update-tasks" | "pixi-update" => {
+            run_nu_script $scripts_dir "pixi_tasks_manage.nu" ["update" ...$args]
         }
 
         # Information commands
@@ -380,6 +391,8 @@ def show_config [tooling_root: string, scripts_dir: string, skeletons_dir: strin
     }
 }
 
+
+
 # Helper function to show comprehensive help
 def show_help [tooling_root: string] {
     print "meso-forge - Multi-package build suite"
@@ -392,7 +405,19 @@ def show_help [tooling_root: string] {
     print "    build-all              Build all packages"
     print "    build-noarch           Build noarch packages only"
     print "    build-platform         Build platform-specific packages"
+    print ""
     print "    build-single --recipe <path>  Build from specific recipe file"
+    print ""
+    print "PIXI TASK MANAGEMENT:"
+    print "    analyze-tasks          Analyze meso-forge tasks in pixi.toml (basic)"
+    print "    update-tasks           Update pixi.toml with latest meso-forge tasks (basic)"
+    print "    pixi-analyze           Alias for analyze-tasks"
+    print "    pixi-update            Alias for update-tasks"
+    print ""
+    print "    Note: For advanced options (--dry-run, --verbose, --force, etc.),"
+    print "    call the script directly:"
+    print "      nu meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze --verbose --show-all"
+    print "      nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update --dry-run --force"
     print ""
     print "PUBLISHING COMMANDS:"
     print "    publish                Publish built packages (interactive mode selection)"

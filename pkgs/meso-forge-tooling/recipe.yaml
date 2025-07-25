@@ -49,16 +49,22 @@ build:
       EOF
       chmod +x $PREFIX/bin/meso-forge
 
-      # Install pixi task management wrapper with corrected module path
-      sed 's|use pixi_tasks_mod.nu \*|use $env.CONDA_PREFIX/share/meso-forge-tooling/scripts/pixi_tasks_mod.nu *|' \
-          meso-forge-tooling/scripts/pixi_tasks_manage.nu > $PREFIX/bin/pixi-tasks.nu
+      # Install pixi task management wrapper - copy the original
+      cp meso-forge-tooling/scripts/pixi_tasks_manage.nu $PREFIX/bin/pixi-tasks.nu
       chmod +x $PREFIX/bin/pixi-tasks.nu
 
-      # Create bash shim for pixi task management
+      # Create bash shim for pixi task management that sets NU_LIB_DIRS and copies module
       cat > $PREFIX/bin/pixi-tasks << 'EOF'
       #!/bin/bash
       # pixi-tasks - Bash shim for pixi task management
-      exec nu "$CONDA_PREFIX/bin/pixi-tasks.nu" "$@"
+      # Create a temporary directory and copy the module there for relative import
+      TEMP_DIR=$(mktemp -d)
+      cp "$CONDA_PREFIX/share/meso-forge-tooling/scripts/pixi_tasks_mod.nu" "$TEMP_DIR/"
+      cp "$CONDA_PREFIX/bin/pixi-tasks.nu" "$TEMP_DIR/"
+      cd "$TEMP_DIR"
+      nu "pixi_tasks_manage.nu" "$@"
+      cd - > /dev/null
+      rm -rf "$TEMP_DIR"
       EOF
       chmod +x $PREFIX/bin/pixi-tasks
 
@@ -67,6 +73,8 @@ build:
       cat > $PREFIX/etc/conda/activate.d/meso-forge-tooling.sh << 'EOF'
       export MESO_FORGE_TOOLING_ROOT="$CONDA_PREFIX/share/meso-forge-tooling"
       export MESO_FORGE_VERSION="0.2.1"
+      # Set NU_LIB_DIRS to include meso-forge-tooling scripts for module resolution
+      export NU_LIB_DIRS="${NU_LIB_DIRS:+$NU_LIB_DIRS:}$CONDA_PREFIX/share/meso-forge-tooling/scripts"
       EOF
 
 requirements:
@@ -88,6 +96,9 @@ tests:
   - script:
       interpreter: bash
       content: |
+        # Source the conda activation script to set up environment
+        source "$CONDA_PREFIX/etc/conda/activate.d/meso-forge-tooling.sh"
+
         # Test that the meso-forge command is available
         meso-forge help
 
