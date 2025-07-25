@@ -122,7 +122,7 @@ nu meso-forge-tooling/scripts/build_single.nu --help
 # Result: ✅ Command available and functional
 
 # Test publish scripts
-nu meso-forge-tooling/scripts/publish.nu --help
+nu meso-forge-tooling/scripts/package_publish.nu --help
 # Result: ✅ Publish functionality available
 ----
 
@@ -194,7 +194,7 @@ ls output/noarch/repodata.json
 [source,bash]
 ----
 # Test publish script functionality
-nu meso-forge-tooling/scripts/publish.nu --dry-run --channel s3://test/channel
+nu meso-forge-tooling/scripts/package_publish.nu --dry-run --channel s3://test/channel
 # Result: ✅ Publish script processes packages correctly
 # Note: Upload attempt expected to fail without credentials (normal behavior)
 ----

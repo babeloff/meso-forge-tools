@@ -11,6 +11,7 @@ def main [
     --versions: string,                      # Version range or specific versions (e.g., "1.0.0", "1.0.0-1.2.0", "1.0.0,1.1.0,1.2.0")
     --method: string = "pd",                 # Publishing method: "pd" for prefix.dev, "s3" for S3
     --target-platform: string = "linux-64", # Target platform
+    --buildstr: string = "",                 # Build string (e.g., "pyhbf21a9e_0"). If empty, will try common patterns
     --url: string = "",                      # Endpoint URL for S3 (overrides default URL)
     --manifest: string = "./pkgs-out/conda-manifest.json",  # Path to manifest file
     --dry-run,                              # Show commands without executing
@@ -20,6 +21,9 @@ def main [
     print $"🗑️  Retracting package: ($package) from channel: ($channel) via ($method)"
     print $"   Platform: ($target_platform)"
     print $"   Versions: ($versions)"
+    if $verbose {
+        print $"   Build string: ($buildstr)"
+    }
     print ""
 
     # Validate required parameters
@@ -77,7 +81,7 @@ def main [
 
     # Retract packages based on method
     match $method {
-        "pd" => { retract-from-prefix-dev $package $channel $version_list $target_platform $dry_run $verbose }
+        "pd" => { retract-from-prefix-dev $package $channel $version_list $target_platform $buildstr $dry_run $verbose }
         "s3" => { retract-from-s3 $package $channel $version_list $target_platform $url $dry_run $verbose }
         _ => {
             print -e $"❌ Unsupported method: ($method)"
@@ -120,6 +124,7 @@ def retract-from-prefix-dev [
     channel: string,
     versions: list<string>,
     platform: string,
+    buildstr: string,
     dry_run: bool,
     verbose: bool
 ] {
@@ -143,58 +148,117 @@ def retract-from-prefix-dev [
     }
 
     for version in $versions {
-        let package_file = $"($package)-($version)-($platform).conda"
-        let api_url = $"https://prefix.dev/api/v1/delete/($channel)/($platform)/($package_file)"
-
-        if $verbose or $dry_run {
-            print $"API URL: ($api_url)"
-            print $"Command: http delete ($api_url) --headers [Authorization \"Bearer [REDACTED]\"]"
+        # Try with provided build string first, then fallback patterns
+        let build_strings = if ($buildstr | is-empty) {
+            # Common build string patterns to try
+            ["py311hf21a9e_0", "pyhbf21a9e_0", "py_0", "0"]
+        } else {
+            [$buildstr]
         }
 
-        if not $dry_run {
-            print $"🗑️  Deleting: ($package_file)"
+        mut success = false
+        for build in $build_strings {
+            if $success { break }
 
-            let result = try {
-                http delete $api_url --headers [Authorization $"Bearer ($api_token)"]
-                {status: 200, success: true}
-            } catch { |e|
-                if ($e.msg | str contains "404") {
-                    {status: 404, success: false, error: "Not found"}
-                } else if ($e.msg | str contains "401") {
-                    {status: 401, success: false, error: "Authentication failed"}
-                } else if ($e.msg | str contains "403") {
-                    {status: 403, success: false, error: "Permission denied"}
+            let package_file = $"($package)-($version)-($build).conda"
+            let api_url = $"https://prefix.dev/api/v1/delete/($channel)/($platform)/($package_file)"
+
+            if $verbose or $dry_run {
+                print $"API URL: ($api_url)"
+                print $"Command: http delete ($api_url) --headers [Authorization \"Bearer [REDACTED]\"]"
+            }
+
+            if not $dry_run {
+                print $"🗑️  Deleting: ($package_file)"
+
+                let result = try {
+                    http delete $api_url --headers [Authorization $"Bearer ($api_token)"]
+                    {status: 200, success: true}
+                } catch { |e|
+                    if $verbose {
+                        print $"Debug: Caught error for build ($build): ($e.msg)"
+                    }
+                    # Check the rendered error text for HTTP status codes
+                    let error_text = if "rendered" in $e { $e.rendered } else { $e.msg }
+                    if ($error_text | str contains "404") {
+                        {status: 404, success: false, error: "Not found"}
+                    } else if ($error_text | str contains "401") {
+                        {status: 401, success: false, error: "Authentication failed"}
+                    } else if ($error_text | str contains "403") {
+                        {status: 403, success: false, error: "Permission denied"}
+                    } else {
+                        {status: 500, success: false, error: $e.msg}
+                    }
+                }
+
+                if $result.success {
+                    print $"✅ Successfully deleted: ($package_file)"
+                    $success = true
                 } else {
-                    {status: 500, success: false, error: $e.msg}
-                }
-            }
+                    match $result.status {
+                        404 => {
+                            if $verbose {
+                                print $"❌ Build string ($build) not found, trying next..."
+                            }
+                            # Try noarch platform if not already trying it and this is the last build string
+                            if $platform != "noarch" and $build == ($build_strings | last) {
+                                print $"🔄 Trying noarch platform..."
+                                for noarch_build in $build_strings {
+                                    let noarch_package_file = $"($package)-($version)-($noarch_build).conda"
+                                    let noarch_api_url = $"https://prefix.dev/api/v1/delete/($channel)/noarch/($noarch_package_file)"
 
-            if $result.success {
-                print $"✅ Successfully deleted: ($package_file)"
-            } else {
-                match $result.status {
-                    404 => {
-                        print -e $"❌ Package not found: ($package_file)"
-                        if $verbose {
-                            print -e $"   The package may have already been deleted or never existed"
+                                    if $verbose {
+                                        print $"Noarch URL: ($noarch_api_url)"
+                                    }
+
+                                    let noarch_result = try {
+                                        http delete $noarch_api_url --headers [Authorization $"Bearer ($api_token)"]
+                                        {status: 200, success: true}
+                                    } catch { |e|
+                                        let error_text = if "rendered" in $e { $e.rendered } else { $e.msg }
+                                        if ($error_text | str contains "404") {
+                                            {status: 404, success: false, error: "Not found"}
+                                        } else {
+                                            {status: 500, success: false, error: $e.msg}
+                                        }
+                                    }
+
+                                    if $noarch_result.success {
+                                        print $"✅ Successfully deleted from noarch: ($noarch_package_file)"
+                                        $success = true
+                                        break
+                                    }
+                                }
+                            }
                         }
-                    }
-                    401 => {
-                        print -e $"❌ Authentication failed for: ($package_file)"
-                        print -e $"   Check your PREFIX_API_TOKEN"
-                    }
-                    403 => {
-                        print -e $"❌ Permission denied for: ($package_file)"
-                        print -e $"   You may not have delete permissions for this channel"
-                    }
-                    _ => {
-                        print -e $"❌ Failed to delete: ($package_file) (HTTP $result.status)"
-                        if $verbose and "error" in $result {
-                            print -e $"   Error: ($result.error)"
+                        401 => {
+                            print -e $"❌ Authentication failed for: ($package_file)"
+                            print -e $"   Check your PREFIX_API_TOKEN"
+                            break
+                        }
+                        403 => {
+                            print -e $"❌ Permission denied for: ($package_file)"
+                            print -e $"   You may not have delete permissions for this channel"
+                            break
+                        }
+                        _ => {
+                            if $verbose {
+                                print -e $"❌ Failed to delete: ($package_file) with build ($build)"
+                                if "error" in $result {
+                                    print -e $"   Error: ($result.error)"
+                                }
+                            }
                         }
                     }
                 }
             }
+        }
+
+        if not $success and not $dry_run {
+            print -e $"❌ Could not delete ($package)-($version) with any build string tried"
+            print -e $"   Build strings attempted: (($build_strings | str join ', '))"
+            print -e $"   Platforms attempted: ($platform)(if $platform != 'noarch' { ', noarch' } else { '' })"
+            print -e $"   Specify --buildstr if you know the exact build string"
         }
     }
 }

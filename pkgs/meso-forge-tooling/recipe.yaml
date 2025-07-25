@@ -2,7 +2,7 @@
 schema_version: 1
 
 context:
-  version: "0.1.9"
+  version: "0.2.0"
 
 package:
   name: meso-forge-tooling
@@ -49,11 +49,23 @@ build:
       EOF
       chmod +x $PREFIX/bin/meso-forge
 
+      # Install pixi task management wrapper
+      cp meso-forge-tooling/scripts/pixi_tasks_manage.nu $PREFIX/bin/pixi-tasks.nu
+      chmod +x $PREFIX/bin/pixi-tasks.nu
+
+      # Create bash shim for pixi task management
+      cat > $PREFIX/bin/pixi-tasks << 'EOF'
+      #!/bin/bash
+      # pixi-tasks - Bash shim for pixi task management
+      exec nu "$CONDA_PREFIX/bin/pixi-tasks.nu" "$@"
+      EOF
+      chmod +x $PREFIX/bin/pixi-tasks
+
       # Create environment activation script
       mkdir -p $PREFIX/etc/conda/activate.d
       cat > $PREFIX/etc/conda/activate.d/meso-forge-tooling.sh << 'EOF'
       export MESO_FORGE_TOOLING_ROOT="$CONDA_PREFIX/share/meso-forge-tooling"
-      export MESO_FORGE_VERSION="0.1.9"
+      export MESO_FORGE_VERSION="0.2.0"
       EOF
 
 requirements:
@@ -85,6 +97,12 @@ tests:
         # Test that required files exist
         test -f "$CONDA_PREFIX/share/meso-forge-tooling/pixi.toml"
         test -f "$CONDA_PREFIX/share/meso-forge-tooling/README.adoc"
+        test -f "$CONDA_PREFIX/share/meso-forge-tooling/docs/pixi-task-management.adoc"
+
+        # Test pixi task management tools
+        test -f "$CONDA_PREFIX/bin/pixi-tasks.nu"
+        test -f "$CONDA_PREFIX/bin/pixi-tasks"
+        pixi-tasks help
 
         # Test that environment variables are set
         test -n "$MESO_FORGE_TOOLING_ROOT"
@@ -109,6 +127,7 @@ about:
     - Testing and validation tools
     - Version management utilities
     - Linting and quality assurance tools
+    - Pixi task management for integrating meso-forge into existing projects
 
     This tooling package is designed to be used by domain-specific package
     repositories, providing a consistent build experience across different

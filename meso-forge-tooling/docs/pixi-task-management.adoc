@@ -1,0 +1,414 @@
+= Pixi Task Management Scripts
+:toc: left
+:toclevels: 3
+:sectnums:
+:source-highlighter: rouge
+:icons: font
+
+[NOTE]
+====
+This documentation covers the Nu shell scripts located in `meso-forge-tooling/scripts/` for managing meso-forge-tooling related tasks in `pixi.toml` files. This is the complete and authoritative documentation, replacing the previous README_pixi_tasks.md file.
+====
+
+The pixi task management system provides a standardized way to integrate meso-forge-tooling capabilities into any pixi project while maintaining existing configurations.
+
+== Scripts Overview
+
+=== `pixi_tasks_manage.nu` (Recommended)
+
+A unified script that combines both analysis and update functionality with an easy-to-use command interface. This is the main script for managing meso-forge tasks and replaces the need for separate analysis scripts.
+
+=== `update_pixi_tasks.nu`
+
+Updates a `pixi.toml` file with the latest meso-forge-tooling task definitions. Tasks that already exist will be replaced with the current standard configuration, and missing tasks will be added.
+
+=== `pixi_tasks_mod.nu`
+
+A shared module containing common functions, task definitions, and utilities used by all the pixi task management scripts. This eliminates code duplication and ensures consistency across scripts.
+
+== Usage
+
+=== Using the Unified Script (Recommended)
+
+The `pixi_tasks_manage.nu` script provides a simple command interface:
+
+[source,bash]
+----
+# Analyze current tasks
+nu meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze
+
+# Preview what would be updated
+nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update --dry-run
+
+# Update tasks (with confirmation)
+nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update
+
+# Force update without confirmation
+nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update --force
+
+# Show help
+nu meso-forge-tooling/scripts/pixi_tasks_manage.nu help
+----
+
+.Command Overview
+[cols="1,3"]
+|===
+|Command |Description
+
+|`analyze`
+|Examine current tasks and show status
+
+|`update`
+|Add/update meso-forge tasks in pixi.toml
+
+|`help`
+|Display usage information and examples
+|===
+
+Common options:
+
+* `--pixi-file <path>`: Specify a different pixi.toml file (default: "pixi.toml")
+* `--verbose`: Enable detailed logging
+
+=== Analyzing Tasks
+
+To check the current state of meso-forge tasks in your `pixi.toml`:
+
+[source,bash]
+----
+nu meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze
+----
+
+Options:
+
+* `--pixi-file <path>`: Specify a different pixi.toml file (default: "pixi.toml")
+* `--verbose`: Show detailed configuration differences for outdated tasks
+* `--show-all`: Display all tasks, not just meso-forge ones
+
+Example output:
+
+----
+=== Pixi.toml Analysis: pixi.toml ===
+
+📊 **Task Summary**
+  Total tasks in pixi.toml: 25
+  Meso-forge tasks found: 12
+  Expected meso-forge tasks: 15
+  Other tasks: 13
+
+❌ **Missing Meso-forge Tasks:**
+  - build-dry
+  - lint-recipes-fix
+  - test-package
+
+⚠️  **Outdated Meso-forge Tasks:**
+  - build-pkg
+  - publish-s3
+
+💡 **Recommendations:**
+  - Run update command to add missing tasks
+  - Run update command to refresh outdated task configurations
+----
+
+=== Updating Tasks (Direct Script)
+
+To update your `pixi.toml` with the latest meso-forge task definitions:
+
+[source,bash]
+----
+nu meso-forge-tooling/scripts/update_pixi_tasks.nu
+----
+
+Options:
+
+* `--pixi-file <path>`: Specify a different pixi.toml file (default: "pixi.toml")
+* `--dry-run`: Show what changes would be made without actually modifying the file
+* `--verbose`: Enable detailed logging
+
+The script will:
+
+1. Create a timestamped backup of your original file
+2. Add any missing meso-forge tasks
+3. Update any existing meso-forge tasks with the current standard configuration
+4. Preserve all non-meso-forge tasks and other sections of the file
+
+=== Dry Run Example
+
+To see what changes would be made without modifying your file:
+
+[source,bash]
+----
+nu meso-forge-tooling/scripts/update_pixi_tasks.nu --dry-run
+----
+
+== Meso-forge Tasks Managed
+
+The scripts manage the following task categories:
+
+=== Build Tasks
+
+* `build-all`: Build all packages for current platform
+* `build-noarch`: Build architecture-independent packages
+* `build-platform`: Build platform-specific packages
+* `build-all-platforms`: Build for all supported platforms
+* `build-for-platform`: Build for a specific platform (parameterized)
+* `build-pkg`: Build a specific package (parameterized)
+* `build-dry`: Dry run build of a specific package (parameterized)
+
+=== Main Command
+
+* `meso-forge`: Main meso-forge wrapper command
+
+=== Linting Tasks
+
+* `lint-recipes`: Lint all recipe files
+* `lint-recipes-fix`: Lint and automatically fix recipe files
+
+=== Testing Tasks
+
+* `test-packages`: Test all built packages
+* `test-platform`: Test packages for specific platform
+* `test-package`: Test a specific package
+
+=== Publishing Tasks
+
+* `publish-pd`: Publish to prefix.dev channel
+* `publish-s3`: Publish to S3-compatible storage
+* `publish-local`: Publish to local S3-compatible storage
+
+=== Package Management Tasks
+
+* `retract-pd`: Retract packages from prefix.dev channel
+
+== Task Configuration Standards
+
+Each meso-forge task follows these standards:
+
+1. **Command Structure**: Uses Nu shell scripts from `meso-forge-tooling/scripts/`
+2. **Working Directory**: Always set to `"."` (project root)
+3. **Parameterization**: Common parameters like package names, platforms, and channels are exposed as task arguments
+4. **Consistent Naming**: Follows kebab-case naming convention
+5. **Script Path**: All scripts reference `meso-forge-tooling/scripts/` directory
+
+== Safety Features
+
+* **Automatic Backups**: Original files are backed up before modification
+* **Dry Run Mode**: Preview changes before applying them
+* **TOML Validation**: Ensures valid TOML syntax after modifications
+* **Error Handling**: Graceful error handling with descriptive messages
+* **Modular Design**: Shared functionality in `pixi_tasks_mod.nu` ensures consistency
+
+== Architecture
+
+The pixi task management system uses a modular architecture designed for maintainability and consistency.
+
+=== Module Structure
+
+[plantuml, align="center"]
+----
+@startuml
+!define RECTANGLE class
+
+RECTANGLE "pixi_tasks_mod.nu" as mod {
+  + get_meso_forge_tasks()
+  + is_meso_forge_task()
+  + load_pixi_file()
+  + analyze_task_status()
+  + format_task_summary()
+  + create_updated_tasks()
+}
+
+RECTANGLE "pixi_tasks_manage.nu" as manage {
+  - analyze_tasks()
+  - update_tasks()
+  - show_help()
+}
+
+RECTANGLE "update_pixi_tasks.nu" as update {
+  - main()
+}
+
+manage --> mod : imports
+update --> mod : imports
+@enduml
+----
+
+=== Core Components
+
+.`pixi_tasks_mod.nu` - Shared Module
+[cols="2,3"]
+|===
+|Function Category |Exported Functions
+
+|Task Definitions
+|`get_meso_forge_tasks()`, `get_meso_forge_task_names()`
+
+|Task Classification
+|`is_meso_forge_task()`
+
+|File Operations
+|`load_pixi_file()`, `generate_backup_filename()`
+
+|Analysis
+|`analyze_task_status()`, `get_current_tasks()`
+
+|Updates
+|`create_updated_tasks()`, `validate_task_config()`
+
+|Display
+|`format_task_summary()`, `format_recommendations()`
+|===
+
+=== Design Benefits
+
+* **Single Source of Truth**: Task definitions maintained in one place
+* **Consistent Behavior**: All scripts use identical logic and validation
+* **Easy Maintenance**: Updates to tasks automatically apply everywhere
+* **Reduced Duplication**: 34% code reduction achieved through modularization
+* **Better Testing**: Shared functionality tested once
+
+== Integration with Existing Projects
+
+These scripts are designed to work with any pixi project that wants to integrate meso-forge-tooling capabilities:
+
+1. **Analyze your current setup**: `nu meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze`
+2. **Review what changes would be made**: `nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update --dry-run`
+3. **Apply the updates**: `nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update`
+
+The scripts will preserve all your existing tasks and configuration while adding or updating only the meso-forge-related tasks.
+
+=== Integration Benefits
+
+* **Non-intrusive**: Existing tasks and configurations are preserved
+* **Selective updates**: Only meso-forge tasks are modified
+* **Safe operations**: Automatic backups protect original files
+* **Flexible deployment**: Can be applied to any pixi project structure
+
+== Troubleshooting
+
+=== Common Issues
+
+1. **TOML Parse Errors**: Ensure your `pixi.toml` file has valid TOML syntax before running the scripts
+2. **File Permissions**: Make sure you have write permissions to the `pixi.toml` file
+3. **Script Paths**: Ensure the `meso-forge-tooling/scripts/` directory exists and contains the required Nu scripts
+
+=== Verbose Mode
+
+Use `--verbose` flag with any script to get detailed logging of what's happening:
+
+[source,bash]
+----
+# Verbose analysis
+nu meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze --verbose
+
+# Verbose update
+nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update --verbose
+
+# Verbose with legacy script
+nu meso-forge-tooling/scripts/update_pixi_tasks.nu --verbose
+----
+
+This will show:
+
+* Which tasks are being added vs updated
+* Backup file locations
+* Detailed progress information
+* Configuration differences for outdated tasks
+
+== Contributing
+
+When adding new meso-forge tasks:
+
+1. Add the task definition to `pixi_tasks_mod.nu` in the `get_meso_forge_tasks` function
+2. Update the task pattern list in the `is_meso_forge_task` function if needed
+3. Follow the established naming and configuration patterns
+4. Update the task list in this documentation
+5. Test with all scripts to ensure consistency
+
+The modular design means you only need to update the task definition in one place (`pixi_tasks_mod.nu`), and all scripts will automatically use the new definition.
+
+=== Task Definition Format
+
+When adding new tasks to `pixi_tasks_mod.nu`, follow this structure:
+
+[source,nu]
+----
+{
+    name: "task-name"
+    config: {
+        cmd: ["nu", "meso-forge-tooling/scripts/script_name.nu"]
+        cwd: "."
+        # Optional: Add arguments for parameterized tasks
+        args: [
+            {arg: "parameter_name", default: "default_value"}
+        ]
+    }
+}
+----
+
+== Examples
+
+=== Complete Workflow (Unified Script)
+
+[source,bash]
+----
+# 1. Check current state
+nu meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze
+
+# 2. See what would change
+nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update --dry-run
+
+# 3. Apply updates with confirmation
+nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update
+
+# 4. Verify changes
+nu meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze
+----
+
+.Expected Output Flow
+[cols="1,3"]
+|===
+|Step |Sample Output
+
+|Analyze
+|Shows missing: `build-dry`, `lint-recipes-fix` +
+Shows outdated: `build-pkg`, `publish-s3`
+
+|Dry Run
+|Displays complete TOML with all changes
+
+|Update
+|Creates backup, applies changes, reports success
+
+|Verify
+|Shows "All meso-forge tasks are up to date! 🎉"
+|===
+
+=== Alternative Workflow (Using Update Script Directly)
+
+[source,bash]
+----
+# 1. Check current state
+nu meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze
+
+# 2. See what would change
+nu meso-forge-tooling/scripts/update_pixi_tasks.nu --dry-run
+
+# 3. Apply updates
+nu meso-forge-tooling/scripts/update_pixi_tasks.nu
+
+# 4. Verify changes
+nu meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze
+----
+
+=== Working with Different Files
+
+[source,bash]
+----
+# Using unified script
+nu meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze --pixi-file ../other-project/pixi.toml
+nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update --pixi-file ../other-project/pixi.toml
+
+# Using update script directly
+nu meso-forge-tooling/scripts/update_pixi_tasks.nu --pixi-file ../other-project/pixi.toml
+----

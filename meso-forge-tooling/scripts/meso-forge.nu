@@ -63,19 +63,19 @@ def main [
 
         # Publishing commands
         "publish" => {
-            run_nu_script $scripts_dir "publish.nu" $args
+            run_nu_script $scripts_dir "package_publish.nu" $args
         }
 
         "publish-pd" => {
-            run_nu_script $scripts_dir "publish.nu" ["--mode" "pd" ...$args]
+            run_nu_script $scripts_dir "package_publish.nu" ["--mode" "pd" ...$args]
         }
 
         "publish-s3" => {
-            run_nu_script $scripts_dir "publish.nu" ["--mode" "s3" ...$args]
+            run_nu_script $scripts_dir "package_publish.nu" ["--mode" "s3" ...$args]
         }
 
         "publish-local" => {
-            run_nu_script $scripts_dir "publish.nu" [
+            run_nu_script $scripts_dir "package_publish.nu" [
                 "--mode" "s3"
                 "--channel" "s3://pixi-local/meso-forge"
                 "--url" "http://localhost:19000"

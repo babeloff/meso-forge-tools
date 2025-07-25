@@ -64,7 +64,7 @@ match $command {
         # Handle build commands with validation
     }
     "publish-pd" => {
-        run_nu_script $scripts_dir "publish.nu" ["--mode" "pd" ...$args]
+        run_nu_script $scripts_dir "package_publish.nu" ["--mode" "pd" ...$args]
     }
     # ... other commands
 }

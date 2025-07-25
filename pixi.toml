@@ -179,7 +179,7 @@ cwd = "."
 # the upload expects the RATTLER_AUTH_FILE variable to be set
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/publish.nu",
+    "meso-forge-tooling/scripts/package_publish.nu",
     "--mode", "pd",
     "--channel", "{{ channel }}",
     "{{ '--force' if force != '' else '' }}",
@@ -196,7 +196,7 @@ cwd = "."
 # the upload expects the RATTLER_AUTH_FILE variable to be set
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/publish.nu",
+    "meso-forge-tooling/scripts/package_publish.nu",
     "--mode", "s3",
     "--channel", "{{ channel }}",
     "--url", "{{ url }}",
@@ -213,7 +213,7 @@ args = [
 # the upload expects the RATTLER_AUTH_FILE variable to be set
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/publish.nu",
+    "meso-forge-tooling/scripts/package_publish.nu",
     "--mode", "s3",
     "--channel", "{{ channel }}",
     "--url", "{{ url }}",
@@ -223,26 +223,26 @@ cmd = [
 # [tasks.publish-status]
 # cmd = ["nu", "-c", "use scripts/package_publish.nu *; publish-status"]
 
-# # Package retraction tasks
-# [tasks.retract-pd]
-# args = [
-#     { arg = "pkg", default = "_skeleton_python" },
-#     { arg = "channel", default = "meso-forge" },
-#     { arg = "versions", default = "1.0.0" },
-#     { arg = "tgt_platform", default = "linux-64" },
-#     { arg = "force", default = "" },
-# ]
-# # the retraction expects the RATTLER_AUTH_FILE variable to be set
-# cmd = [
-#     "nu",
-#     "scripts/package_retract.nu",
-#     "{{ pkg }}",
-#     "--channel={{ channel }}",
-#     "--versions={{ versions }}",
-#     "--method=pd",
-#     "--target-platform={{ tgt_platform }}",
-#     "{{ '--force' if force != '' else '' }}",
-# ]
+# Package retraction tasks
+[tasks.retract-pd]
+args = [
+    { arg = "pkg", default = "_skeleton_python" },
+    { arg = "channel", default = "meso-forge" },
+    { arg = "versions", default = "1.0.0" },
+    { arg = "tgt_platform", default = "linux-64" },
+    { arg = "force", default = "" },
+]
+# the retraction expects the RATTLER_AUTH_FILE variable to be set
+cmd = [
+    "nu",
+    "meso-forge-tooling/scripts/package_retract.nu",
+    "{{ pkg }}",
+    "--channel={{ channel }}",
+    "--versions={{ versions }}",
+    "--method=pd",
+    "--target-platform={{ tgt_platform }}",
+    "{{ '--force' if force != '' else '' }}",
+]
 
 # [tasks.retract-s3]
 # args = [

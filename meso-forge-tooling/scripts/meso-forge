@@ -90,16 +90,16 @@ case "${1:-help}" in
 
     # Publishing commands
     publish)
-        run_nu_script "publish.nu" "${@:2}"
+        run_nu_script "package_publish.nu" "${@:2}"
         ;;
     publish-pd)
-        run_nu_script "publish.nu" --mode pd "${@:2}"
+        run_nu_script "package_publish.nu" --mode pd "${@:2}"
         ;;
     publish-s3)
-        run_nu_script "publish.nu" --mode s3 "${@:2}"
+        run_nu_script "package_publish.nu" --mode s3 "${@:2}"
         ;;
     publish-local)
-        run_nu_script "publish.nu" --mode s3 --channel "s3://pixi-local/meso-forge" --url "http://localhost:19000" "${@:2}"
+        run_nu_script "package_publish.nu" --mode s3 --channel "s3://pixi-local/meso-forge" --url "http://localhost:19000" "${@:2}"
         ;;
 
     # Testing commands
