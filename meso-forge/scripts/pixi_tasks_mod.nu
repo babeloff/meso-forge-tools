@@ -1,11 +1,11 @@
 #!/usr/bin/env nu
 
-# Pixi Task Manager for Meso-forge-tooling
+# Pixi Task Manager for Meso-forge
 # This script provides a unified interface to analyze and update meso-forge tasks in pixi.toml files
 # Also contains shared functionality used by analyze, update, and manage scripts
 #
 # Task Implementation Options:
-# 1. Direct nushell scripts (default): Uses "nu meso-forge-tooling/scripts/*.nu"
+# 1. Direct nushell scripts (default): Uses "nu meso-forge/scripts/*.nu"
 # 2. Trampoline scripts (alternative): Uses "meso-forge-*" command wrappers
 #
 # The direct script approach is recommended for better performance and compatibility
@@ -20,28 +20,28 @@ export def get_meso_forge_tasks [] {
         {
             name: "build-all"
             config: {
-                cmd: ["nu", "meso-forge-tooling/scripts/build_all.nu"]
+                cmd: ["nu", "meso-forge/scripts/build_all.nu"]
                 cwd: "."
             }
         }
         {
             name: "build-noarch"
             config: {
-                cmd: ["nu", "meso-forge-tooling/scripts/build_noarch.nu"]
+                cmd: ["nu", "meso-forge/scripts/build_noarch.nu"]
                 cwd: "."
             }
         }
         {
             name: "build-platform"
             config: {
-                cmd: ["nu", "meso-forge-tooling/scripts/build_platform.nu"]
+                cmd: ["nu", "meso-forge/scripts/build_platform.nu"]
                 cwd: "."
             }
         }
         {
             name: "build-all-platforms"
             config: {
-                cmd: ["nu", "meso-forge-tooling/scripts/build_platform.nu", "--all-platforms"]
+                cmd: ["nu", "meso-forge/scripts/build_platform.nu", "--all-platforms"]
                 cwd: "."
             }
         }
@@ -51,7 +51,7 @@ export def get_meso_forge_tasks [] {
                 args: [
                     {arg: "platform", default: "linux-64"}
                 ]
-                cmd: ["nu", "meso-forge-tooling/scripts/build_platform.nu", "--platform", "{{ platform }}"]
+                cmd: ["nu", "meso-forge/scripts/build_platform.nu", "--platform", "{{ platform }}"]
                 cwd: "."
             }
         }
@@ -62,7 +62,7 @@ export def get_meso_forge_tasks [] {
                 args: [
                     {arg: "pkg", default: "asciidoctor-revealjs"}
                 ]
-                cmd: ["nu", "meso-forge-tooling/scripts/build_single.nu", "--recipe", "pkgs/{{ pkg }}/recipe.yaml"]
+                cmd: ["nu", "meso-forge/scripts/build_single.nu", "--recipe", "pkgs/{{ pkg }}/recipe.yaml"]
                 cwd: "."
             }
         }
@@ -72,7 +72,7 @@ export def get_meso_forge_tasks [] {
                 args: [
                     {arg: "pkg", default: "asciidoctor-revealjs"}
                 ]
-                cmd: ["nu", "meso-forge-tooling/scripts/build_single.nu", "--recipe", "pkgs/{{ pkg }}/recipe.yaml", "--dry-run"]
+                cmd: ["nu", "meso-forge/scripts/build_single.nu", "--recipe", "pkgs/{{ pkg }}/recipe.yaml", "--dry-run"]
                 cwd: "."
             }
         }
@@ -81,14 +81,14 @@ export def get_meso_forge_tasks [] {
         {
             name: "lint-recipes"
             config: {
-                cmd: ["nu", "meso-forge-tooling/scripts/lint_recipes.nu"]
+                cmd: ["nu", "meso-forge/scripts/lint_recipes.nu"]
                 cwd: "."
             }
         }
         {
             name: "lint-recipes-fix"
             config: {
-                cmd: ["nu", "meso-forge-tooling/scripts/lint_recipes.nu", "--fix"]
+                cmd: ["nu", "meso-forge/scripts/lint_recipes.nu", "--fix"]
                 cwd: "."
             }
         }
@@ -97,21 +97,21 @@ export def get_meso_forge_tasks [] {
         {
             name: "test-packages"
             config: {
-                cmd: ["nu", "meso-forge-tooling/scripts/test_packages.nu"]
+                cmd: ["nu", "meso-forge/scripts/test_packages.nu"]
                 cwd: "."
             }
         }
         {
             name: "test-platform"
             config: {
-                cmd: ["nu", "meso-forge-tooling/scripts/test_packages.nu", "--platform"]
+                cmd: ["nu", "meso-forge/scripts/test_packages.nu", "--platform"]
                 cwd: "."
             }
         }
         {
             name: "test-package"
             config: {
-                cmd: ["nu", "meso-forge-tooling/scripts/test_packages.nu", "--package"]
+                cmd: ["nu", "meso-forge/scripts/test_packages.nu", "--package"]
                 cwd: "."
             }
         }
@@ -127,7 +127,7 @@ export def get_meso_forge_tasks [] {
                 cwd: "."
                 cmd: [
                     "nu",
-                    "meso-forge-tooling/scripts/package_publish.nu",
+                    "meso-forge/scripts/package_publish.nu",
                     "--mode", "pd",
                     "--channel", "{{ channel }}",
                     "{{ '--force' if force != '' else '' }}"
@@ -146,7 +146,7 @@ export def get_meso_forge_tasks [] {
                 cwd: "."
                 cmd: [
                     "nu",
-                    "meso-forge-tooling/scripts/package_publish.nu",
+                    "meso-forge/scripts/package_publish.nu",
                     "--mode", "s3",
                     "--channel", "{{ channel }}",
                     "--url", "{{ url }}",
@@ -165,7 +165,7 @@ export def get_meso_forge_tasks [] {
                 ]
                 cmd: [
                     "nu",
-                    "meso-forge-tooling/scripts/package_publish.nu",
+                    "meso-forge/scripts/package_publish.nu",
                     "--mode", "s3",
                     "--channel", "{{ channel }}",
                     "--url", "{{ url }}",
@@ -187,7 +187,7 @@ export def get_meso_forge_tasks [] {
                 ]
                 cmd: [
                     "nu",
-                    "meso-forge-tooling/scripts/package_retract.nu",
+                    "meso-forge/scripts/package_retract.nu",
                     "{{ pkg }}",
                     "--channel={{ channel }}",
                     "--versions={{ versions }}",
@@ -517,13 +517,13 @@ export def validate_task_config [config: record] {
         return false
     }
 
-    # Check if cmd references meso-forge-tooling scripts
+    # Check if cmd references meso-forge scripts
     let cmd_str = if ($config.cmd | describe) == "list" {
         $config.cmd | str join " "
     } else {
         $config.cmd
     }
-    $cmd_str =~ "meso-forge-tooling"
+    $cmd_str =~ "meso-forge"
 }
 
 # Create a formatted task summary for display
@@ -556,7 +556,7 @@ export def format_recommendations [analysis: record, pixi_file: string] {
         $recommendations = ($recommendations | append "  - All meso-forge tasks are up to date! 🎉")
     }
 
-    $recommendations = ($recommendations | append $"  - Use: nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update --pixi-file ($pixi_file)")
+    $recommendations = ($recommendations | append $"  - Use: nu meso-forge/scripts/pixi_tasks_manage.nu update --pixi-file ($pixi_file)")
 
     $recommendations | str join (char newline)
 }
@@ -796,7 +796,7 @@ export def update_tasks [pixi_file: string, dry_run: bool, verbose: bool, force:
 
 # Show help information
 export def show_help [] {
-    print "Pixi Task Manager for Meso-forge-tooling"
+    print "Pixi Task Manager for Meso-forge"
     print ""
     print "USAGE:"
     print "  nu pixi_tasks_manage.nu <COMMAND> [OPTIONS]"
@@ -859,21 +859,3 @@ export def main [
         }
     }
 }
-
-# Analyze meso-forge tasks in pixi.toml
-export def analyze_tasks [pixi_file: string, verbose: bool, show_all: bool] {
-    if $verbose {
-        log info "Starting pixi.toml analysis"
-    }
-
-    # Load and validate pixi file
-    let pixi_data = load_pixi_file $pixi_file
-
-    # Get expected and current tasks
-    let expected_tasks = get_meso_forge_tasks
-    let current_tasks = get_current_tasks $pixi_data
-
-    print $"=== Pixi.toml Analysis: ($pixi_file) ==="
-    print ""
-
-    # Analyze

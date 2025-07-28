@@ -45,7 +45,6 @@ export def resolve_recipe [ --recipe: string ] {
     }
     try {
         let recipe_yaml = (^rattler-build build --render-only --recipe $recipe | complete | get stdout | from yaml)
-        print $"Here is a recipe: ($recipe)"
         # rattler-build returns an array of recipes, we want the first one
         return ($recipe_yaml | first).recipe
     } catch {
@@ -70,7 +69,6 @@ export def find_noarch_packages [
                 print $"X No recipe.yaml found for ($pkg)"
                 return false
             } else {
-                print $"recipe.yaml found for ($pkg)"
                 let recipe = resolve_recipe --recipe $recipe_path
                 if ($recipe == nothing) {
                     print "❌ Package recipe does not exist"
@@ -147,18 +145,16 @@ export def --wrapped build_with_rattler_dry_run [package: string, ...rest] {
 }
 
 export def --wrapped build_with_rattler [package: string, ...rest] {
-    print $"Building package ($rest)..."
     if '--recipe' in $rest {
         try {
             let result = (^rattler-build build ...$rest | complete)
-            # if $result.error_code == 0 {
-            #     print $"Package ($package) built successfully"
-            #     return $result
-            # } else {
-            #     print $"Failed to build package ($package)"
-            #     return nothing
-            # }
-            return $result
+            if $result.exit_code == 0 {
+                return $result
+            } else {
+                print $"❌ Failed to build package ($package)"
+                print $"Error: ($result.stderr)"
+                return nothing
+            }
         } catch {
             print $"❌ Failed to build ($package)"
             return nothing

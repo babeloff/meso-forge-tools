@@ -1,7 +1,7 @@
 """
-meso-forge-tooling scripts package.
+meso-forge scripts package.
 
-This package contains the core scripts and utilities for the meso-forge-tooling system.
+This package contains the core scripts and utilities for the meso-forge system.
 """
 
 # Version information

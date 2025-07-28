@@ -7,10 +7,10 @@
 
 [NOTE]
 ====
-This documentation covers the Nu shell scripts located in `meso-forge-tooling/scripts/` for managing meso-forge-tooling related tasks in `pixi.toml` files. This is the complete and authoritative documentation, replacing the previous README_pixi_tasks.md file.
+This documentation covers the Nu shell scripts located in `meso-forge/scripts/` for managing meso-forge related tasks in `pixi.toml` files. This is the complete and authoritative documentation, replacing the previous README_pixi_tasks.md file.
 ====
 
-The pixi task management system provides a standardized way to integrate meso-forge-tooling capabilities into any pixi project while maintaining existing configurations.
+The pixi task management system provides a standardized way to integrate meso-forge capabilities into any pixi project while maintaining existing configurations.
 
 == Scripts Overview
 
@@ -31,19 +31,19 @@ The `pixi_tasks_manage.nu` script provides a simple command interface:
 [source,bash]
 ----
 # Analyze current tasks
-nu meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze
+nu meso-forge/scripts/pixi_tasks_manage.nu analyze
 
 # Preview what would be updated
-nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update --dry-run
+nu meso-forge/scripts/pixi_tasks_manage.nu update --dry-run
 
 # Update tasks (with confirmation)
-nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update
+nu meso-forge/scripts/pixi_tasks_manage.nu update
 
 # Force update without confirmation
-nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update --force
+nu meso-forge/scripts/pixi_tasks_manage.nu update --force
 
 # Show help
-nu meso-forge-tooling/scripts/pixi_tasks_manage.nu help
+nu meso-forge/scripts/pixi_tasks_manage.nu help
 ----
 
 .Command Overview
@@ -72,7 +72,7 @@ To check the current state of meso-forge tasks in your `pixi.toml`:
 
 [source,bash]
 ----
-nu meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze
+nu meso-forge/scripts/pixi_tasks_manage.nu analyze
 ----
 
 Options:
@@ -112,7 +112,7 @@ To update your `pixi.toml` with the latest meso-forge task definitions using the
 
 [source,bash]
 ----
-nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update
+nu meso-forge/scripts/pixi_tasks_manage.nu update
 ----
 
 The update process will:
@@ -135,7 +135,7 @@ To see what changes would be made without modifying your file:
 
 [source,bash]
 ----
-nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update --dry-run
+nu meso-forge/scripts/pixi_tasks_manage.nu update --dry-run
 ----
 
 == Meso-forge Tasks Managed
@@ -181,11 +181,11 @@ The scripts manage the following task categories:
 
 Each meso-forge task follows these standards:
 
-1. **Command Structure**: Uses Nu shell scripts from `meso-forge-tooling/scripts/`
+1. **Command Structure**: Uses Nu shell scripts from `meso-forge/scripts/`
 2. **Working Directory**: Always set to `"."` (project root)
 3. **Parameterization**: Common parameters like package names, platforms, and channels are exposed as task arguments
 4. **Consistent Naming**: Follows kebab-case naming convention
-5. **Script Path**: All scripts reference `meso-forge-tooling/scripts/` directory
+5. **Script Path**: All scripts reference `meso-forge/scripts/` directory
 
 == Safety Features
 
@@ -261,11 +261,11 @@ manage --> mod : imports
 
 == Integration with Existing Projects
 
-These scripts are designed to work with any pixi project that wants to integrate meso-forge-tooling capabilities:
+These scripts are designed to work with any pixi project that wants to integrate meso-forge capabilities:
 
-1. **Analyze your current setup**: `nu meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze`
-2. **Review what changes would be made**: `nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update --dry-run`
-3. **Apply the updates**: `nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update`
+1. **Analyze your current setup**: `nu meso-forge/scripts/pixi_tasks_manage.nu analyze`
+2. **Review what changes would be made**: `nu meso-forge/scripts/pixi_tasks_manage.nu update --dry-run`
+3. **Apply the updates**: `nu meso-forge/scripts/pixi_tasks_manage.nu update`
 
 The scripts will preserve all your existing tasks and configuration while adding or updating only the meso-forge-related tasks.
 
@@ -282,7 +282,7 @@ The scripts will preserve all your existing tasks and configuration while adding
 
 1. **TOML Parse Errors**: Ensure your `pixi.toml` file has valid TOML syntax before running the scripts
 2. **File Permissions**: Make sure you have write permissions to the `pixi.toml` file
-3. **Script Paths**: Ensure the `meso-forge-tooling/scripts/` directory exists and contains the required Nu scripts
+3. **Script Paths**: Ensure the `meso-forge/scripts/` directory exists and contains the required Nu scripts
 
 === Verbose Mode
 
@@ -291,13 +291,13 @@ Use `--verbose` flag with any script to get detailed logging of what's happening
 [source,bash]
 ----
 # Verbose analysis
-nu meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze --verbose
+nu meso-forge/scripts/pixi_tasks_manage.nu analyze --verbose
 
 # Verbose update
-nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update --verbose
+nu meso-forge/scripts/pixi_tasks_manage.nu update --verbose
 
 # Verbose update
-nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update --verbose
+nu meso-forge/scripts/pixi_tasks_manage.nu update --verbose
 ----
 
 This will show:
@@ -328,7 +328,7 @@ When adding new tasks to `pixi_tasks_mod.nu`, follow this structure:
 {
     name: "task-name"
     config: {
-        cmd: ["nu", "meso-forge-tooling/scripts/script_name.nu"]
+        cmd: ["nu", "meso-forge/scripts/script_name.nu"]
         cwd: "."
         # Optional: Add arguments for parameterized tasks
         args: [
@@ -345,16 +345,16 @@ When adding new tasks to `pixi_tasks_mod.nu`, follow this structure:
 [source,bash]
 ----
 # 1. Check current state
-nu meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze
+nu meso-forge/scripts/pixi_tasks_manage.nu analyze
 
 # 2. See what would change
-nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update --dry-run
+nu meso-forge/scripts/pixi_tasks_manage.nu update --dry-run
 
 # 3. Apply updates with confirmation
-nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update
+nu meso-forge/scripts/pixi_tasks_manage.nu update
 
 # 4. Verify changes
-nu meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze
+nu meso-forge/scripts/pixi_tasks_manage.nu analyze
 ----
 
 .Expected Output Flow
@@ -381,8 +381,8 @@ Shows outdated: `build-pkg`, `publish-s3`
 [source,bash]
 ----
 # Analyze different pixi.toml file
-nu meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze --pixi-file ../other-project/pixi.toml
+nu meso-forge/scripts/pixi_tasks_manage.nu analyze --pixi-file ../other-project/pixi.toml
 
 # Update different pixi.toml file
-nu meso-forge-tooling/scripts/pixi_tasks_manage.nu update --pixi-file ../other-project/pixi.toml
+nu meso-forge/scripts/pixi_tasks_manage.nu update --pixi-file ../other-project/pixi.toml
 ----

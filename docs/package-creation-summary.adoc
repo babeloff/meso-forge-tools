@@ -7,7 +7,7 @@
 
 == Overview
 
-Successfully created a new conda package `minio-s3-tools` that extracts and packages the MinIO-related tooling from the main `meso-forge-tooling` package. This allows users to install and use MinIO S3-compatible credential and bucket management tools independently.
+Successfully created a new conda package `minio-s3-tools` that extracts and packages the MinIO-related tooling from the main `meso-forge` package. This allows users to install and use MinIO S3-compatible credential and bucket management tools independently.
 
 == Package Details
 
@@ -182,7 +182,7 @@ When the package is activated, the following environment variables are set:
 
 The `minio-s3-tools` package works seamlessly with the broader meso-forge toolchain:
 
-. **meso-forge-tooling**: Core build infrastructure that can leverage MinIO for package storage
+. **meso-forge**: Core build infrastructure that can leverage MinIO for package storage
 . **Package Branches**: Domain-specific repositories that can use MinIO for hosting
 . **CI/CD Workflows**: Automated builds can use these tools for secure credential management
 

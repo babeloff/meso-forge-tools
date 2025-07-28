@@ -1,4 +1,4 @@
-= meso-forge-tooling
+= meso-forge
 :repository: https://github.com/phreed/meso-forge
 
 Multi-package build suite for conda packages.
@@ -9,7 +9,7 @@ IMPORTANT: For important security updates and credential management changes, see
 
 [source,bash]
 ----
-pixi global install meso-forge-tooling -c https://prefix.dev/meso-forge
+pixi global install meso-forge -c https://prefix.dev/meso-forge
 ----
 
 == Package Branches
@@ -126,7 +126,7 @@ See link:minio-s3-tools/docs/minio-setup.adoc[MinIO Client Configuration Guide] 
 This repository has been organized into package-specific directories for better maintainability:
 
 * **`common/`** - Shared files used by both packages (LICENSE.txt, README.adoc)
-* **`meso-forge-tooling/`** - Core build infrastructure files (scripts, configs, docs, pkg-skeletons)
+* **`meso-forge/`** - Core build infrastructure files (scripts, configs, docs, pkg-skeletons)
 * **`minio-s3-tools/`** - MinIO-specific tooling files (scripts, configs, docs)
 * **`pkgs/`** - Package recipes for both packages
 * **Root level** - Project-wide files and general documentation
@@ -148,7 +148,7 @@ For detailed information about the project and packages:
 
 This repository provides the following conda packages:
 
-=== meso-forge-tooling
+=== meso-forge
 
 The core build infrastructure package that provides:
 
@@ -159,12 +159,12 @@ The core build infrastructure package that provides:
 * **Version Management** - Automated version tracking and updates
 * **Quality Assurance** - Built-in linting and validation tools
 
-Package files located in: `meso-forge-tooling/`
+Package files located in: `meso-forge/`
 
 [source,bash]
 ----
 # Install the core tooling
-pixi global install meso-forge-tooling -c https://prefix.dev/meso-forge
+pixi global install meso-forge -c https://prefix.dev/meso-forge
 
 # Verify installation
 meso-forge help

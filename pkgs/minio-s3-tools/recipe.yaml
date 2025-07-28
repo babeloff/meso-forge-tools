@@ -2,7 +2,7 @@
 schema_version: 1
 
 context:
-  version: "0.2.0"
+  version: "0.2.2"
 
 package:
   name: minio-s3-tools
@@ -145,7 +145,7 @@ tests:
         }
 
         # Source the conda activation script to set up environment (using bash for sourcing)
-        bash -c "source $env.CONDA_PREFIX/etc/conda/activate.d/minio-s3-tools.sh && env" | lines | each { |line|
+        bash -c "source $CONDA_PREFIX/etc/conda/activate.d/minio-s3-tools.sh && env" | lines | each { |line|
           if ($line | str contains "=") {
             let parts = ($line | split column "=" key value)
             if ($parts.key.0 | str starts-with "MINIO_S3_TOOLS") {
@@ -163,9 +163,9 @@ tests:
         }
 
         # Test help commands (basic functionality)
-        run-external "init-minio" ["--help"]
-        run-external "manage-minio-credentials" ["--help"]
-        run-external "remove-minio-bucket" ["--help"]
+        run-external "init-minio" "--help"
+        run-external "manage-minio-credentials" "--help"
+        run-external "remove-minio-bucket" "--help"
 
         print "All minio-s3-tools tests passed!"
 

@@ -3,7 +3,7 @@ name: Build Tooling
 on:
   push:
     branches: [main]
-    paths: ['pkgs/meso-forge-tooling/**']
+    paths: ['pkgs/meso-forge/**']
 
 jobs:
   build:
@@ -13,7 +13,7 @@ jobs:
     - name: Install pixi
       uses: prefix-dev/setup-pixi@v0.8.1
     - name: Build tooling
-      run: pixi run build-pkg meso-forge-tooling
+      run: pixi run build-pkg meso-forge
     - name: Publish tooling
       run: pixi run publish-pd
       env:

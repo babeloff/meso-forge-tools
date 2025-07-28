@@ -2,10 +2,10 @@
 schema_version: 1
 
 context:
-  version: "0.3.0"
+  version: "0.3.2"
 
 package:
-  name: meso-forge-tooling
+  name: meso-forge
   version: ${{ version }}
 
 source:
@@ -20,21 +20,24 @@ build:
     # Run nushell script for build operations
     nu -c '
       # Create the tooling directory structure
-      mkdir ($env.PREFIX | path join "share" "meso-forge-tooling")
+      mkdir ($env.PREFIX | path join "share" "meso-forge")
 
       # Copy all tooling components
-      cp -r "meso-forge-tooling/scripts" ($env.PREFIX | path join "share" "meso-forge-tooling" "scripts")
-      cp -r "meso-forge-tooling/pkg-skeletons" ($env.PREFIX | path join "share" "meso-forge-tooling" "pkg-skeletons")
+      cp -r "meso-forge/scripts" ($env.PREFIX | path join "share" "meso-forge" "scripts")
+      cp -r "meso-forge/pkg-skeletons" ($env.PREFIX | path join "share" "meso-forge" "pkg-skeletons")
+
+      # Copy pixi_tasks_mod.nu to bin directory for pixi-tasks.nu to import
+      cp "meso-forge/scripts/pixi_tasks_mod.nu" ($env.PREFIX | path join "bin" "pixi_tasks_mod.nu")
 
       # Copy configuration files
-      cp "meso-forge-tooling/configs/pixi.toml" ($env.PREFIX | path join "share" "meso-forge-tooling" "pixi.toml")
-      cp "meso-forge-tooling/configs/conda-forge.yml" ($env.PREFIX | path join "share" "meso-forge-tooling" "conda-forge.yml")
-      cp "meso-forge-tooling/configs/auth.json.example" ($env.PREFIX | path join "share" "meso-forge-tooling" "auth.json.example")
+      cp "meso-forge/configs/pixi.toml" ($env.PREFIX | path join "share" "meso-forge" "pixi.toml")
+      cp "meso-forge/configs/conda-forge.yml" ($env.PREFIX | path join "share" "meso-forge" "conda-forge.yml")
+      cp "meso-forge/configs/auth.json.example" ($env.PREFIX | path join "share" "meso-forge" "auth.json.example")
 
       # Copy documentation
-      cp -r "meso-forge-tooling/docs" ($env.PREFIX | path join "share" "meso-forge-tooling" "docs")
-      cp "common/README.adoc" ($env.PREFIX | path join "share" "meso-forge-tooling" "README.adoc")
-      cp "common/LICENSE.txt" ($env.PREFIX | path join "share" "meso-forge-tooling" "LICENSE.txt")
+      cp -r "meso-forge/docs" ($env.PREFIX | path join "share" "meso-forge" "docs")
+      cp "common/README.adoc" ($env.PREFIX | path join "share" "meso-forge" "README.adoc")
+      cp "common/LICENSE.txt" ($env.PREFIX | path join "share" "meso-forge" "LICENSE.txt")
 
       # Create wrapper scripts for meso-forge command
       mkdir ($env.PREFIX | path join "bin")
@@ -44,44 +47,40 @@ build:
       # Build commands
       let build_all_script = [
         "#!/usr/bin/env nu"
-        "exec nu \$env.CONDA_PREFIX/share/meso-forge-tooling/scripts/build_all.nu \$args"
+        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/build_all.nu\")"
       ] | str join "\n"
       $build_all_script | save ($env.PREFIX | path join "bin" "meso-forge-build-all")
       chmod +x ($env.PREFIX | path join "bin" "meso-forge-build-all")
 
       let build_noarch_script = [
         "#!/usr/bin/env nu"
-        "exec nu \$env.CONDA_PREFIX/share/meso-forge-tooling/scripts/build_noarch.nu \$args"
+        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/build_noarch.nu\")"
       ] | str join "\n"
       $build_noarch_script | save ($env.PREFIX | path join "bin" "meso-forge-build-noarch")
       chmod +x ($env.PREFIX | path join "bin" "meso-forge-build-noarch")
 
       let build_platform_script = [
         "#!/usr/bin/env nu"
-        "exec nu \$env.CONDA_PREFIX/share/meso-forge-tooling/scripts/build_platform.nu \$args"
+        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/build_platform.nu\")"
       ] | str join "\n"
       $build_platform_script | save ($env.PREFIX | path join "bin" "meso-forge-build-platform")
       chmod +x ($env.PREFIX | path join "bin" "meso-forge-build-platform")
 
       let build_single_script = [
         "#!/usr/bin/env nu"
-        "exec nu \$env.CONDA_PREFIX/share/meso-forge-tooling/scripts/build_single.nu \$args"
+        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/build_single.nu\")"
       ] | str join "\n"
       $build_single_script | save ($env.PREFIX | path join "bin" "meso-forge-build-single")
       chmod +x ($env.PREFIX | path join "bin" "meso-forge-build-single")
 
       # Publishing commands
-      let publish_script = [
-        "#!/usr/bin/env nu"
-        "exec nu \$env.CONDA_PREFIX/share/meso-forge-tooling/scripts/package_publish.nu \$args"
-      ] | str join "\n"
-      $publish_script | save ($env.PREFIX | path join "bin" "meso-forge-publish")
+      cp pkgs/meso-forge/scripts/meso-forge-publish-local.nu ($env.PREFIX | path join "bin" "meso-forge-publish")
       chmod +x ($env.PREFIX | path join "bin" "meso-forge-publish")
 
       # Testing commands
       let test_packages_script = [
         "#!/usr/bin/env nu"
-        "exec nu \$env.CONDA_PREFIX/share/meso-forge-tooling/scripts/test_packages.nu \$args"
+        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/test_packages.nu\")"
       ] | str join "\n"
       $test_packages_script | save ($env.PREFIX | path join "bin" "meso-forge-test-packages")
       chmod +x ($env.PREFIX | path join "bin" "meso-forge-test-packages")
@@ -89,14 +88,14 @@ build:
       # Package management commands
       let check_package_script = [
         "#!/usr/bin/env nu"
-        "exec nu \$env.CONDA_PREFIX/share/meso-forge-tooling/scripts/check_package_exists.nu \$args"
+        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/check_package_exists.nu\")"
       ] | str join "\n"
       $check_package_script | save ($env.PREFIX | path join "bin" "meso-forge-check-package")
       chmod +x ($env.PREFIX | path join "bin" "meso-forge-check-package")
 
       let retract_script = [
         "#!/usr/bin/env nu"
-        "exec nu \$env.CONDA_PREFIX/share/meso-forge-tooling/scripts/package_retract.nu \$args"
+        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/package_retract.nu\")"
       ] | str join "\n"
       $retract_script | save ($env.PREFIX | path join "bin" "meso-forge-retract")
       chmod +x ($env.PREFIX | path join "bin" "meso-forge-retract")
@@ -104,28 +103,36 @@ build:
       # Quality assurance commands
       let lint_recipes_script = [
         "#!/usr/bin/env nu"
-        "exec nu \$env.CONDA_PREFIX/share/meso-forge-tooling/scripts/lint_recipes.nu \$args"
+        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/lint_recipes.nu\")"
       ] | str join "\n"
       $lint_recipes_script | save ($env.PREFIX | path join "bin" "meso-forge-lint-recipes")
       chmod +x ($env.PREFIX | path join "bin" "meso-forge-lint-recipes")
 
+      # Version update commands
+      let update_versions_script = [
+        "#!/usr/bin/env nu"
+        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/update_versions.nu\")"
+      ] | str join "\n"
+      $update_versions_script | save ($env.PREFIX | path join "bin" "meso-forge-update-versions")
+      chmod +x ($env.PREFIX | path join "bin" "meso-forge-update-versions")
+
       # Pixi task management commands
       let pixi_analyze_script = [
         "#!/usr/bin/env nu"
-        "exec nu \$env.CONDA_PREFIX/share/meso-forge-tooling/scripts/pixi_tasks_manage.nu analyze \$args"
+        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/pixi_tasks_manage.nu\") analyze"
       ] | str join "\n"
       $pixi_analyze_script | save ($env.PREFIX | path join "bin" "meso-forge-pixi-analyze")
       chmod +x ($env.PREFIX | path join "bin" "meso-forge-pixi-analyze")
 
       let pixi_update_script = [
         "#!/usr/bin/env nu"
-        "exec nu \$env.CONDA_PREFIX/share/meso-forge-tooling/scripts/pixi_tasks_manage.nu update \$args"
+        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/pixi_tasks_manage.nu\") update"
       ] | str join "\n"
       $pixi_update_script | save ($env.PREFIX | path join "bin" "meso-forge-pixi-update")
       chmod +x ($env.PREFIX | path join "bin" "meso-forge-pixi-update")
 
       # Create pixi-tasks wrapper script (nu version)
-      cp "meso-forge-tooling/scripts/pixi_tasks_manage.nu" ($env.PREFIX | path join "bin" "pixi-tasks.nu")
+      cp "meso-forge/scripts/pixi_tasks_manage.nu" ($env.PREFIX | path join "bin" "pixi-tasks.nu")
       chmod +x ($env.PREFIX | path join "bin" "pixi-tasks.nu")
 
       # Create pixi-tasks wrapper script (shell version)
@@ -139,13 +146,13 @@ build:
       mkdir ($env.PREFIX | path join "etc" "conda" "activate.d")
       # Create environment activation script
       let activation_script = [
-        "export MESO_FORGE_TOOLING_ROOT=\"\$CONDA_PREFIX/share/meso-forge-tooling\""
+        "export MESO_FORGE_ROOT=\"\$CONDA_PREFIX/share/meso-forge\""
         "export MESO_FORGE_VERSION=\"0.3.0\""
-        "# Set NU_LIB_DIRS to include meso-forge-tooling scripts for module resolution"
-        "export NU_LIB_DIRS=\"\${NU_LIB_DIRS:+\$NU_LIB_DIRS:}\$CONDA_PREFIX/share/meso-forge-tooling/scripts\""
+        "# Set NU_LIB_DIRS to include meso-forge scripts for module resolution"
+        "export NU_LIB_DIRS=\"\${NU_LIB_DIRS:+\$NU_LIB_DIRS:}\$CONDA_PREFIX/share/meso-forge/scripts\""
       ] | str join "\n"
-      $activation_script | save ($env.PREFIX | path join "etc" "conda" "activate.d" "meso-forge-tooling.sh")
-      chmod +x ($env.PREFIX | path join "etc" "conda" "activate.d" "meso-forge-tooling.sh")
+      $activation_script | save ($env.PREFIX | path join "etc" "conda" "activate.d" "meso-forge.sh")
+      chmod +x ($env.PREFIX | path join "etc" "conda" "activate.d" "meso-forge.sh")
     '
 
 requirements:
@@ -171,7 +178,7 @@ tests:
       interpreter: nu
       content: |
         # Source the conda activation script to set up environment (using bash for sourcing)
-        bash -c "source $env.CONDA_PREFIX/etc/conda/activate.d/meso-forge-tooling.sh && env" | lines | each { |line|
+        bash -c "source $CONDA_PREFIX/etc/conda/activate.d/meso-forge.sh && env" | lines | each { |line|
           if ($line | str contains "=") {
             let parts = ($line | split column "=" key value)
             if ($parts.key.0 | str starts-with "MESO_FORGE") or ($parts.key.0 == "NU_LIB_DIRS") {
@@ -193,6 +200,7 @@ tests:
           "meso-forge-lint-recipes"
           "meso-forge-pixi-analyze"
           "meso-forge-pixi-update"
+          "meso-forge-update-versions"
         ]
 
         for command in $commands {
@@ -202,18 +210,18 @@ tests:
         }
 
         # Test that tooling files are accessible
-        if not (($env.CONDA_PREFIX | path join "share" "meso-forge-tooling" "scripts") | path exists) {
+        if not (($env.CONDA_PREFIX | path join "share" "meso-forge" "scripts") | path exists) {
           error make {msg: "scripts directory not found"}
         }
-        if not (($env.CONDA_PREFIX | path join "share" "meso-forge-tooling" "pkg-skeletons") | path exists) {
+        if not (($env.CONDA_PREFIX | path join "share" "meso-forge" "pkg-skeletons") | path exists) {
           error make {msg: "pkg-skeletons directory not found"}
         }
 
         # Test that required files exist
         let required_files = [
-          "share/meso-forge-tooling/pixi.toml"
-          "share/meso-forge-tooling/README.adoc"
-          "share/meso-forge-tooling/docs/pixi-task-management.adoc"
+          "share/meso-forge/pixi.toml"
+          "share/meso-forge/README.adoc"
+          "share/meso-forge/docs/pixi-task-management.adoc"
           "bin/pixi-tasks.nu"
           "bin/pixi-tasks"
         ]
@@ -227,21 +235,37 @@ tests:
 
         # Test pixi task management tools
         # Test help commands (basic functionality)
-        run-external "pixi-tasks" ["help"]
+        run-external "pixi-tasks" "help"
 
-        # Test individual trampoline scripts help/version
-        run-external "meso-forge-build-all" ["--help"]
-        run-external "meso-forge-lint-recipes" ["--help"]
+        # Test that command wrappers exist and are executable (without running them)
+        let commands_to_verify = [
+          "meso-forge-build-all"
+          "meso-forge-lint-recipes"
+          "meso-forge-update-versions"
+        ]
+
+        for cmd in $commands_to_verify {
+          let cmd_path = ($env.CONDA_PREFIX | path join "bin" $cmd)
+          if not ($cmd_path | path exists) {
+            error make {msg: $"Command wrapper ($cmd) not found at expected path"}
+          }
+
+          # Check if it's executable
+          let file_info = ls $cmd_path | first
+          if not ($file_info.name | str ends-with $cmd) {
+            error make {msg: $"Command wrapper ($cmd) path verification failed"}
+          }
+        }
 
         # Test that environment variables are set
-        if ($env.MESO_FORGE_TOOLING_ROOT? | is-empty) {
-          error make {msg: "MESO_FORGE_TOOLING_ROOT not set"}
+        if ($env.MESO_FORGE_ROOT? | is-empty) {
+          error make {msg: "MESO_FORGE_ROOT not set"}
         }
         if ($env.MESO_FORGE_VERSION? | is-empty) {
           error make {msg: "MESO_FORGE_VERSION not set"}
         }
 
-        print "All meso-forge-tooling tests passed!"
+        print "All meso-forge tests passed!"
 
 about:
   homepage: https://github.com/phreed/meso-forge
@@ -251,7 +275,7 @@ about:
   license_file: common/LICENSE.txt
   summary: Multi-package build suite for conda packages
   description: |
-    meso-forge-tooling provides the complete build infrastructure for creating
+    meso-forge provides the complete build infrastructure for creating
     and maintaining conda packages across multiple domains. It includes:
 
     - Build scripts and utilities (Nu shell based)

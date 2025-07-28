@@ -172,7 +172,7 @@ The tools follow strict security practices:
 
 == Integration
 
-=== With meso-forge-tooling
+=== With meso-forge
 
 The tools integrate seamlessly with the broader meso-forge ecosystem:
 

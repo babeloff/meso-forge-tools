@@ -12,10 +12,10 @@ This document describes how files have been organized into package-specific dire
 ----
 meso-forge-tools/
 ├── common/                          # Shared files used by both packages
-├── meso-forge-tooling/              # Files specific to meso-forge-tooling package
+├── meso-forge/                      # Files specific to meso-forge package
 ├── minio-s3-tools/                  # Files specific to minio-s3-tools package
 ├── pkgs/                            # Package recipes directory
-│   ├── meso-forge-tooling/
+│   ├── meso-forge/
 │   └── minio-s3-tools/
 ├── docs/                            # General documentation (not package-specific)
 ├── templates/                       # General templates
@@ -31,11 +31,11 @@ meso-forge-tools/
 These files are used by both packages:
 
 * `LICENSE.txt` - MIT license (copied by both packages)
-* `README.adoc` - Main project documentation (referenced by meso-forge-tooling)
+* `README.adoc` - Main project documentation (referenced by meso-forge)
 
-=== meso-forge-tooling Package Files (./meso-forge-tooling/)
+=== meso-forge Package Files (./meso-forge/)
 
-==== Scripts (./meso-forge-tooling/scripts/)
+==== Scripts (./meso-forge/scripts/)
 
 * `meso-forge` - Main command entry point
 * `build_*.nu` - Build system scripts (build_all, build_mod, build_noarch, build_platform, build_single)
@@ -49,17 +49,17 @@ These files are used by both packages:
 * `__init__.py` - Python module initialization
 * `plugins_source/` - Plugin source directory
 
-==== Configuration (./meso-forge-tooling/configs/)
+==== Configuration (./meso-forge/configs/)
 
 * `pixi.toml` - Pixi configuration for package branches
 * `conda-forge.yml` - Conda-forge configuration
 * `auth.json.example` - General authentication example
 
-==== Package Templates (./meso-forge-tooling/pkg-skeletons/)
+==== Package Templates (./meso-forge/pkg-skeletons/)
 
 Complete directory with package templates for various languages
 
-==== Documentation (./meso-forge-tooling/docs/)
+==== Documentation (./meso-forge/docs/)
 
 * `package-retract.adoc` - Package retraction documentation
 * `version-ctl.adoc` - Version control documentation
@@ -121,12 +121,12 @@ Files that remain at the project root and are not part of either package:
 
 Both package recipes have been updated to reference the new file locations:
 
-=== meso-forge-tooling Recipe Changes
+=== meso-forge Recipe Changes
 
-* Scripts path: `scripts/` → `meso-forge-tooling/scripts/`
-* Package skeletons: `pkg-skeletons/` → `meso-forge-tooling/pkg-skeletons/`
-* Configs: `configs/` → `meso-forge-tooling/configs/`
-* Documentation: Added `meso-forge-tooling/docs/` directory copy
+* Scripts path: `scripts/` → `meso-forge/scripts/`
+* Package skeletons: `pkg-skeletons/` → `meso-forge/pkg-skeletons/`
+* Configs: `configs/` → `meso-forge/configs/`
+* Documentation: Added `meso-forge/docs/` directory copy
 * License: `LICENSE.txt` → `common/LICENSE.txt`
 * README: `README.adoc` → `common/README.adoc`
 
@@ -175,7 +175,7 @@ Both package recipes have been tested and render successfully with `rattler-buil
 
 After reorganization:
 
-* **meso-forge-tooling**: ~146.6 KB - Contains all core build infrastructure
+* **meso-forge**: ~146.6 KB - Contains all core build infrastructure
 * **minio-s3-tools**: ~43.7 KB - Contains only MinIO-specific functionality
 
 The separation results in more focused packages with reduced overhead for users who only need specific functionality.

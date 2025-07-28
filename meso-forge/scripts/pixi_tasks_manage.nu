@@ -1,6 +1,6 @@
 #!/usr/bin/env nu
 
-# Pixi Task Manager for Meso-forge-tooling
+# Pixi Task Manager for Meso-forge
 # This script provides a unified interface to analyze and update meso-forge tasks in pixi.toml files
 
 use std log
@@ -224,7 +224,7 @@ def update_tasks [pixi_file: string, dry_run: bool, verbose: bool, force: bool] 
 
 # Show help information
 def show_help [] {
-    print "Pixi Task Manager for Meso-forge-tooling"
+    print "Pixi Task Manager for Meso-forge"
     print ""
     print "USAGE:"
     print "  nu pixi_tasks_manage.nu <COMMAND> [OPTIONS]"

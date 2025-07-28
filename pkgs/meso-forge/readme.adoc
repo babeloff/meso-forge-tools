@@ -1,4 +1,4 @@
-= meso-forge-tooling
+= meso-forge
 :version: 0.1.0
 :homepage: https://github.com/phreed/meso-forge
 :documentation: https://github.com/phreed/meso-forge/blob/main/README.adoc
@@ -7,7 +7,7 @@ Multi-package build suite for conda packages with domain-based organization.
 
 == Overview
 
-`meso-forge-tooling` provides the complete build infrastructure for creating and maintaining conda packages across multiple domains. It separates the build tooling from the packages themselves, allowing for better organization and independent development of different package categories.
+`meso-forge` provides the complete build infrastructure for creating and maintaining conda packages across multiple domains. It separates the build tooling from the packages themselves, allowing for better organization and independent development of different package categories.
 
 == Features
 
@@ -23,7 +23,7 @@ Multi-package build suite for conda packages with domain-based organization.
 [source,bash]
 ----
 # Install globally using pixi
-pixi global install meso-forge-tooling -c https://prefix.dev/meso-forge -c conda-forge
+pixi global install meso-forge -c https://prefix.dev/meso-forge -c conda-forge
 
 # Verify installation
 meso-forge help
@@ -33,7 +33,7 @@ meso-forge help
 
 === Using in Package Branches
 
-Package branches depend on `meso-forge-tooling` and use it through simple commands:
+Package branches depend on `meso-forge` and use it through simple commands:
 
 [source,bash]
 ----
@@ -156,7 +156,7 @@ The tooling includes ready-to-use templates for different ecosystems:
 
 == Domain-Based Organization
 
-`meso-forge-tooling` supports organizing packages into domain-specific branches:
+`meso-forge` supports organizing packages into domain-specific branches:
 
 * **tactical-packages** - Military and defense systems
 * **system-tools** - System utilities and shell enhancements
@@ -267,7 +267,7 @@ meso-forge test
 
 If migrating from a single repository with all packages:
 
-1. Install `meso-forge-tooling`
+1. Install `meso-forge`
 2. Create domain-specific branches
 3. Copy packages to appropriate branches
 4. Update `pixi.toml` to use the tooling
@@ -283,10 +283,10 @@ See the migration guide for detailed instructions.
 [source,bash]
 ----
 # Ensure tooling is installed
-pixi global list | grep meso-forge-tooling
+pixi global list | grep meso-forge
 
 # Reinstall if needed
-pixi global install meso-forge-tooling -c https://prefix.dev/meso-forge
+pixi global install meso-forge -c https://prefix.dev/meso-forge
 ----
 
 **Build failures:**

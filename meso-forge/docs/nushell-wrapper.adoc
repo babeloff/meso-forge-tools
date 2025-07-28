@@ -35,7 +35,7 @@ $CONDA_PREFIX/bin/
 ├── meso-forge-pixi-analyze       # Analyze pixi tasks
 └── meso-forge-pixi-update        # Update pixi tasks
 
-$CONDA_PREFIX/share/meso-forge-tooling/
+$CONDA_PREFIX/share/meso-forge/
 ├── scripts/
 │   ├── *.nu           # Nushell implementation scripts
 │   └── *.py           # Python utilities
@@ -51,7 +51,7 @@ Each trampoline script follows this simple pattern:
 [source,nushell]
 ----
 #!/usr/bin/env nu
-exec nu $env.CONDA_PREFIX/share/meso-forge-tooling/scripts/[actual_script].nu $args
+exec nu $env.CONDA_PREFIX/share/meso-forge/scripts/[actual_script].nu $args
 ----
 
 === Environment Detection
@@ -61,14 +61,14 @@ The underlying nushell scripts use a robust environment detection system:
 [source,nushell]
 ----
 def get_tooling_root [] {
-    if ($env.MESO_FORGE_TOOLING_ROOT? | is-not-empty) and ($env.MESO_FORGE_TOOLING_ROOT | path exists) {
-        $env.MESO_FORGE_TOOLING_ROOT
-    } else if ($env.CONDA_PREFIX? | is-not-empty) and ([$env.CONDA_PREFIX "share" "meso-forge-tooling"] | path join | path exists) {
-        [$env.CONDA_PREFIX "share" "meso-forge-tooling"] | path join
-    } else if ("./meso-forge-tooling" | path exists) {
-        "./meso-forge-tooling"
+    if ($env.MESO_FORGE_ROOT? | is-not-empty) and ($env.MESO_FORGE_ROOT | path exists) {
+        $env.MESO_FORGE_ROOT
+    } else if ($env.CONDA_PREFIX? | is-not-empty) and ([$env.CONDA_PREFIX "share" "meso-forge"] | path join | path exists) {
+        [$env.CONDA_PREFIX "share" "meso-forge"] | path join
+    } else if ("./meso-forge" | path exists) {
+        "./meso-forge"
     } else {
-        print $"(ansi red)Error: meso-forge-tooling not found...(ansi reset)"
+        print $"(ansi red)Error: meso-forge not found...(ansi reset)"
         exit 1
     }
 }
@@ -205,8 +205,8 @@ meso-forge-build-all
 meso-forge-build-single --recipe pkgs/my-package/recipe.yaml
 
 # From within nushell (direct script calls)
-nu $env.CONDA_PREFIX/share/meso-forge-tooling/scripts/build_all.nu
-nu $env.CONDA_PREFIX/share/meso-forge-tooling/scripts/build_single.nu --recipe pkgs/my-package/recipe.yaml
+nu $env.CONDA_PREFIX/share/meso-forge/scripts/build_all.nu
+nu $env.CONDA_PREFIX/share/meso-forge/scripts/build_single.nu --recipe pkgs/my-package/recipe.yaml
 ----
 
 === Pixi Integration
@@ -290,7 +290,7 @@ nu --version
 [source,bash]
 ----
 # Check installation
-pixi list | grep meso-forge-tooling
+pixi list | grep meso-forge
 
 # Verify file locations
 ls $CONDA_PREFIX/bin/meso-forge*
@@ -314,7 +314,7 @@ Enable detailed debugging:
 [source,bash]
 ----
 # Debug the nushell scripts directly
-nu --log-level debug $CONDA_PREFIX/share/meso-forge-tooling/scripts/build_single.nu --recipe pkgs/my-package/recipe.yaml
+nu --log-level debug $CONDA_PREFIX/share/meso-forge/scripts/build_single.nu --recipe pkgs/my-package/recipe.yaml
 
 # Enable verbose output
 meso-forge-build-all --verbose
@@ -345,7 +345,7 @@ Example trampoline script:
 [source,nushell]
 ----
 #!/usr/bin/env nu
-exec nu $env.CONDA_PREFIX/share/meso-forge-tooling/scripts/my_new_script.nu $args
+exec nu $env.CONDA_PREFIX/share/meso-forge/scripts/my_new_script.nu $args
 ----
 
 === Testing Changes

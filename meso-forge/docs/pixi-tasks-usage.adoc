@@ -5,22 +5,22 @@
 :source-highlighter: rouge
 :icons: font
 
-This guide shows how to use the pixi task management tools after installing the `meso-forge-tooling` conda package.
+This guide shows how to use the pixi task management tools after installing the `meso-forge` conda package.
 
 == Installation
 
-Install the meso-forge-tooling package from your conda channel:
+Install the meso-forge package from your conda channel:
 
 [source,bash]
 ----
 # Install from conda-forge (when available)
-conda install -c conda-forge meso-forge-tooling
+conda install -c conda-forge meso-forge
 
 # Or install from your custom channel
-conda install -c your-channel meso-forge-tooling
+conda install -c your-channel meso-forge
 
 # Or using pixi
-pixi add meso-forge-tooling
+pixi add meso-forge
 ----
 
 == Quick Start
@@ -137,7 +137,7 @@ For advanced usage, you can call the Nu shell scripts directly:
 nu $CONDA_PREFIX/bin/pixi-tasks.nu analyze --verbose
 
 # Access the module from your own Nu scripts
-use $CONDA_PREFIX/share/meso-forge-tooling/scripts/pixi_tasks_mod.nu *
+use $CONDA_PREFIX/share/meso-forge/scripts/pixi_tasks_mod.nu *
 ----
 
 == Environment Variables
@@ -218,7 +218,7 @@ If `pixi-tasks` command is not found:
 [source,bash]
 ----
 # Check if package is installed
-conda list meso-forge-tooling
+conda list meso-forge
 
 # Check if environment is activated
 echo $CONDA_PREFIX
@@ -275,8 +275,8 @@ jobs:
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.4.1
 
-      - name: Install meso-forge-tooling
-        run: pixi add meso-forge-tooling
+      - name: Install meso-forge
+        run: pixi add meso-forge
 
       - name: Update pixi tasks
         run: pixi-tasks update --force
@@ -292,7 +292,7 @@ jobs:
 To add your own tasks to the meso-forge ecosystem:
 
 1. Fork the meso-forge-tools repository
-2. Edit `meso-forge-tooling/scripts/pixi_tasks_mod.nu`
+2. Edit `meso-forge/scripts/pixi_tasks_mod.nu`
 3. Add your task definition to the `get_meso_forge_tasks()` function
 4. Test with your local pixi projects
 5. Submit a pull request

@@ -5,30 +5,30 @@
 
 == Overview
 
-The `meso-forge` wrapper script provides a unified command-line interface to all the nushell scripts and Python utilities in the meso-forge-tooling package. It acts as a comprehensive wrapper that simplifies access to the entire build, test, and publish workflow.
+The `meso-forge` wrapper script provides a unified command-line interface to all the nushell scripts and Python utilities in the meso-forge package. It acts as a comprehensive wrapper that simplifies access to the entire build, test, and publish workflow.
 
 == Installation and Setup
 
-The `meso-forge` wrapper is automatically installed when you install the `meso-forge-tooling` conda package:
+The `meso-forge` wrapper is automatically installed when you install the `meso-forge` conda package:
 
 [source,bash]
 ----
 # Install from local channel
-pixi add meso-forge-tooling --channel http://localhost:19000/pixi-local/meso-forge
+pixi add meso-forge --channel http://localhost:19000/pixi-local/meso-forge
 
 # Or from prefix.dev
-pixi add meso-forge-tooling --channel https://prefix.dev/meso-forge
+pixi add meso-forge --channel https://prefix.dev/meso-forge
 ----
 
 After installation, the `meso-forge` command becomes available in your PATH.
 
 == Environment Detection
 
-The wrapper automatically detects the meso-forge-tooling installation location in this order:
+The wrapper automatically detects the meso-forge installation location in this order:
 
-1. **`$MESO_FORGE_TOOLING_ROOT`** - If set, uses this path directly
-2. **`$CONDA_PREFIX/share/meso-forge-tooling`** - Standard conda package location
-3. **`./meso-forge-tooling`** - Local development directory
+1. **`$MESO_FORGE_ROOT`** - If set, uses this path directly
+2. **`$CONDA_PREFIX/share/meso-forge`** - Standard conda package location
+3. **`./meso-forge`** - Local development directory
 
 This allows the wrapper to work in both installed environments and development setups.
 
@@ -482,17 +482,17 @@ init-rust-%:
 
 === Common Issues
 
-==== "meso-forge-tooling not found"
+==== "meso-forge not found"
 *Cause:* The tooling package is not installed or the environment variables are incorrect.
 
 *Solution:*
 [source,bash]
 ----
 # Check if package is installed
-pixi list | grep meso-forge-tooling
+pixi list | grep meso-forge
 
 # Install if missing
-pixi add meso-forge-tooling
+pixi add meso-forge
 
 # Check environment
 meso-forge config
@@ -586,16 +586,16 @@ When modifying the wrapper:
 [source,bash]
 ----
 # Test basic functionality
-./meso-forge-tooling/scripts/meso-forge help
-./meso-forge-tooling/scripts/meso-forge config
-./meso-forge-tooling/scripts/meso-forge list-scripts
+./meso-forge/scripts/meso-forge help
+./meso-forge/scripts/meso-forge config
+./meso-forge/scripts/meso-forge list-scripts
 
 # Test script execution
-./meso-forge-tooling/scripts/meso-forge run test_plugins
+./meso-forge/scripts/meso-forge run test_plugins
 
 # Test package operations
-./meso-forge-tooling/scripts/meso-forge list-packages
-./meso-forge-tooling/scripts/meso-forge build my-package
+./meso-forge/scripts/meso-forge list-packages
+./meso-forge/scripts/meso-forge build my-package
 ----
 
 == See Also

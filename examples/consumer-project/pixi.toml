@@ -12,7 +12,7 @@ platforms = ["linux-64", "linux-aarch64"]
 
 [dependencies]
 # Install packages from your local MinIO channel
-meso-forge-tooling = "*"
+meso-forge = "*"
 minio-s3-tools = "*"
 
 # Standard dependencies from conda-forge
@@ -28,7 +28,7 @@ cmd = "manage-minio-credentials --help"
 
 # Example build task using your tooling
 [tasks.build-example]
-cmd = ["bash", "-c", "echo 'Using meso-forge-tooling from local channel' && meso-forge help"]
+cmd = ["bash", "-c", "echo 'Using meso-forge from local channel' && meso-forge help"]
 
 # List available packages
 [tasks.list-packages]

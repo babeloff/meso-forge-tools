@@ -31,7 +31,7 @@ channels = [
 ]
 
 [dependencies]
-meso-forge-tooling = "*"
+meso-forge = "*"
 minio-s3-tools = "*"
 ----
 
@@ -71,7 +71,7 @@ Use channel overrides for one-time installs:
 [source,bash]
 ----
 # Install from local channel temporarily
-pixi add meso-forge-tooling -c http://localhost:19000/pixi-local/meso-forge
+pixi add meso-forge -c http://localhost:19000/pixi-local/meso-forge
 
 # Or run commands with specific channel
 pixi run --channel http://localhost:19000/pixi-local/meso-forge my-command
@@ -105,7 +105,7 @@ Expected output for local packages:
 
 [source,console]
 ----
-meso-forge-tooling    0.1.5    h4616a5c_0    145.9 KiB   conda   http://localhost:19000/pixi-local/meso-forge
+meso-forge    0.1.5    h4616a5c_0    145.9 KiB   conda   http://localhost:19000/pixi-local/meso-forge
 minio-s3-tools        0.1.0    h4616a5c_0    42.6 KiB    conda   http://localhost:19000/pixi-local/meso-forge
 ----
 
@@ -177,7 +177,7 @@ If you have version conflicts between local and public channels:
 [source,toml]
 ----
 [dependencies]
-meso-forge-tooling = "=0.1.5"  # Exact version
+meso-forge = "=0.1.5"  # Exact version
 ----
 
 2. **Use channel-specific constraints**:
@@ -185,7 +185,7 @@ meso-forge-tooling = "=0.1.5"  # Exact version
 [source,toml]
 ----
 [dependencies]
-meso-forge-tooling = { version = "*", channel = "http://localhost:19000/pixi-local/meso-forge" }
+meso-forge = { version = "*", channel = "http://localhost:19000/pixi-local/meso-forge" }
 ----
 
 == Example Projects
@@ -204,7 +204,7 @@ channels = [
 ]
 
 [dependencies]
-meso-forge-tooling = "*"
+meso-forge = "*"
 minio-s3-tools = "*"
 python = ">=3.9"
 
@@ -229,7 +229,7 @@ channels = [
 ]
 
 [dependencies]
-meso-forge-tooling = "*"
+meso-forge = "*"
 minio-s3-tools = "*"
 
 [tasks.init-python-pkg]
@@ -324,19 +324,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup pixi
         uses: prefix-dev/setup-pixi@v0.8.1
-        
+
       - name: Setup MinIO and publish packages
         run: |
           # Configure MinIO
           pixi run init-minio --url http://localhost:9000
-          
+
           # Build and publish to local MinIO
           pixi run build-all
           pixi run publish-local --url http://localhost:9000
-          
+
       - name: Test package installation
         run: |
           cd examples/consumer-project

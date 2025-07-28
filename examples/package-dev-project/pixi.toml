@@ -12,7 +12,7 @@ platforms = ["linux-64", "linux-aarch64"]
 
 [dependencies]
 # Core build tooling from local channel
-meso-forge-tooling = "*"
+meso-forge = "*"
 minio-s3-tools = "*"
 
 # Development dependencies

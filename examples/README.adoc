@@ -20,7 +20,7 @@ The examples demonstrate how to:
 
 === link:consumer-project/[Consumer Project]
 
-A simple example showing how to consume `meso-forge-tooling` and `minio-s3-tools` packages in a pixi project.
+A simple example showing how to consume `meso-forge` and `minio-s3-tools` packages in a pixi project.
 
 **Key Features:**
 * Multi-channel configuration (local + public)
@@ -93,7 +93,7 @@ Before using these examples, ensure you have:
 
 * **pixi** installed and configured
 * **MinIO server** running locally (if using local channels)
-* **meso-forge-tooling** packages built and published
+* **meso-forge** packages built and published
 
 == Support
 

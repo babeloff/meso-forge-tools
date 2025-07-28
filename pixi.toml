@@ -1,7 +1,7 @@
 "$schema" = "https://pixi.sh/latest/schema/manifest/schema.json"
 
 [workspace]
-name = "meso-forge"
+name = "meso-forge-tools"
 version = "0.1.1"
 description = "Multi-package build suite"
 authors = ["Fred Eisele <fred.eisele@vanderbilt.edu>"]
@@ -39,28 +39,28 @@ gxx_linux-aarch64 = "*"
 [tasks.build-all]
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/build_all.nu",
+    "meso-forge/scripts/build_all.nu",
 ]
 cwd = "."
 
 [tasks.build-noarch]
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/build_noarch.nu",
+    "meso-forge/scripts/build_noarch.nu",
 ]
 cwd = "."
 
 [tasks.build-platform]
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/build_platform.nu",
+    "meso-forge/scripts/build_platform.nu",
 ]
 cwd = "."
 
 [tasks.build-all-platforms]
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/build_platform.nu",
+    "meso-forge/scripts/build_platform.nu",
     "--all-platforms",
 ]
 cwd = "."
@@ -68,7 +68,7 @@ cwd = "."
 [tasks.build-for-platform]
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/build_platform.nu",
+    "meso-forge/scripts/build_platform.nu",
     "--platform",
     "{{ platform }}",
 ]
@@ -83,7 +83,7 @@ default = "linux-64"
 [tasks.build-pkg]
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/build_single.nu",
+    "meso-forge/scripts/build_single.nu",
     "--recipe",
     "pkgs/{{ pkg }}/recipe.yaml",
 ]
@@ -96,7 +96,7 @@ default = "asciidoctor-revealjs"
 [tasks.build-dry]
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/build_single.nu",
+    "meso-forge/scripts/build_single.nu",
     "--recipe",
     "pkgs/{{ pkg }}/recipe.yaml",
     "--dry-run",
@@ -114,14 +114,14 @@ cwd = "."
 [tasks.lint-recipes]
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/lint_recipes.nu",
+    "meso-forge/scripts/lint_recipes.nu",
 ]
 cwd = "."
 
 [tasks.lint-recipes-fix]
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/lint_recipes.nu",
+    "meso-forge/scripts/lint_recipes.nu",
     "--fix",
 ]
 cwd = "."
@@ -129,14 +129,14 @@ cwd = "."
 [tasks.test-packages]
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/test_packages.nu",
+    "meso-forge/scripts/test_packages.nu",
 ]
 cwd = "."
 
 [tasks.test-platform]
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/test_packages.nu",
+    "meso-forge/scripts/test_packages.nu",
     "--platform",
 ]
 cwd = "."
@@ -144,7 +144,7 @@ cwd = "."
 [tasks.test-package]
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/test_packages.nu",
+    "meso-forge/scripts/test_packages.nu",
     "--package",
 ]
 cwd = "."
@@ -153,7 +153,7 @@ cwd = "."
 cwd = "."
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/package_publish.nu",
+    "meso-forge/scripts/package_publish.nu",
     "--mode",
     "pd",
     "--channel",
@@ -173,7 +173,7 @@ default = "meso-forge"
 cwd = "."
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/package_publish.nu",
+    "meso-forge/scripts/package_publish.nu",
     "--mode",
     "s3",
     "--channel",
@@ -203,7 +203,7 @@ default = "https://minio.isis.vanderbilt.edu"
 [tasks.publish-local]
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/package_publish.nu",
+    "meso-forge/scripts/package_publish.nu",
     "--mode",
     "s3",
     "--channel",
@@ -228,7 +228,7 @@ default = "http://localhost:19000"
 [tasks.retract-pd]
 cmd = [
     "nu",
-    "meso-forge-tooling/scripts/package_retract.nu",
+    "meso-forge/scripts/package_retract.nu",
     "{{ pkg }}",
     "--channel={{ channel }}",
     "--versions={{ versions }}",
@@ -519,3 +519,71 @@ cmd = [
     "--update",
     "--each",
 ]
+
+[tasks.update-versions]
+description = "Update versions in all recipe.yaml files"
+cmd = [
+    "nu",
+    "meso-forge/scripts/update_versions.nu",
+    "--each",
+]
+cwd = "."
+
+[tasks.update-versions-dry]
+description = "Preview version updates without making changes"
+cmd = [
+    "nu",
+    "meso-forge/scripts/update_versions.nu",
+    "--each",
+    "--dry-run",
+]
+cwd = "."
+
+[tasks.update-version-meso-forge]
+description = "Update version for meso-forge package"
+cmd = [
+    "nu",
+    "meso-forge/scripts/update_versions.nu",
+    "--package",
+    "meso-forge",
+]
+cwd = "."
+
+[tasks.update-version-minio-s3-tools]
+description = "Update version for minio-s3-tools package"
+cmd = [
+    "nu",
+    "meso-forge/scripts/update_versions.nu",
+    "--package",
+    "minio-s3-tools",
+]
+cwd = "."
+
+[tasks.update-version-force]
+description = "Update version for a package with force flag (edit task to specify package)"
+cmd = [
+    "nu",
+    "meso-forge/scripts/update_versions.nu",
+    "--package",
+    "meso-forge",
+    "--force",
+]
+cwd = "."
+
+[tasks.update-version-manual]
+description = "Manual update helper - edit this task to specify package and run"
+cmd = [
+    "nu",
+    "-c",
+    "print 'To update a specific package, run: nu meso-forge/scripts/update_versions.nu --package PACKAGE_NAME'; print 'Example: nu meso-forge/scripts/update_versions.nu --package minio-s3-tools --force'"
+]
+cwd = "."
+
+[tasks.list-packages]
+description = "List all packages that can have versions updated"
+cmd = [
+    "nu",
+    "meso-forge/scripts/update_versions.nu",
+    "--list",
+]
+cwd = "."

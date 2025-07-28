@@ -16,8 +16,8 @@ platforms = [
 ]
 
 [dependencies]
-# Core dependency on meso-forge-tooling
-meso-forge-tooling = ">=0.1.4,<0.2.0"
+# Core dependency on meso-forge
+meso-forge = ">=0.1.4,<0.2.0"
 
 # Build tasks using meso-forge tooling
 [tasks.build-all]

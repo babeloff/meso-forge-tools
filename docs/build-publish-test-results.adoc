@@ -16,7 +16,7 @@ Both packages build successfully, pass all tests, and maintain full functionalit
 
 == Package Build Results
 
-=== meso-forge-tooling Package
+=== meso-forge Package
 
 [cols="1,3"]
 |===
@@ -94,8 +94,9 @@ Both packages build successfully, pass all tests, and maintain full functionalit
 [source,bash]
 ----
 # Test individual package builds
-rattler-build build -r pkgs/meso-forge-tooling/recipe.yaml --output-dir ./output
+rattler-build build -r pkgs/meso-forge/recipe.yaml --output-dir ./output
 # Result: ✅ SUCCESS
+
 
 rattler-build build -r pkgs/minio-s3-tools/recipe.yaml --output-dir ./output
 # Result: ✅ SUCCESS
@@ -109,20 +110,20 @@ rattler-build build -r pkgs/minio-s3-tools/recipe.yaml --output-dir ./output
 
 === Script Functionality Testing
 
-==== meso-forge-tooling Scripts
+==== meso-forge Scripts
 
 [source,bash]
 ----
 # Test main command help
-nu meso-forge-tooling/scripts/meso-forge help
+nu meso-forge/scripts/meso-forge help
 # Result: ✅ Help displayed correctly
 
 # Test build scripts
-nu meso-forge-tooling/scripts/build_single.nu --help
+nu meso-forge/scripts/build_single.nu --help
 # Result: ✅ Command available and functional
 
 # Test publish scripts
-nu meso-forge-tooling/scripts/package_publish.nu --help
+nu meso-forge/scripts/package_publish.nu --help
 # Result: ✅ Publish functionality available
 ----
 
@@ -173,8 +174,8 @@ ls output/noarch/repodata.json
 ```json
 {
   "packages.conda": {
-    "meso-forge-tooling-0.1.5-h4616a5c_0.conda": {
-      "name": "meso-forge-tooling",
+    "meso-forge-0.1.5-h4616a5c_0.conda": {
+      "name": "meso-forge",
       "version": "0.1.5",
       "size": 149071,
       "noarch": "generic"
@@ -194,7 +195,7 @@ ls output/noarch/repodata.json
 [source,bash]
 ----
 # Test publish script functionality
-nu meso-forge-tooling/scripts/package_publish.nu --dry-run --channel s3://test/channel
+nu meso-forge/scripts/package_publish.nu --dry-run --channel s3://test/channel
 # Result: ✅ Publish script processes packages correctly
 # Note: Upload attempt expected to fail without credentials (normal behavior)
 ----
@@ -214,7 +215,7 @@ meso-forge-tools/
 ├── common/                          # ✅ Shared files
 │   ├── LICENSE.txt
 │   └── README.adoc
-├── meso-forge-tooling/              # ✅ Core tooling files
+├── meso-forge/                      # ✅ Core tooling files
 │   ├── scripts/                     # 23 scripts + plugins
 │   ├── configs/                     # Configuration files
 │   ├── docs/                        # Technical documentation
@@ -224,7 +225,7 @@ meso-forge-tools/
 │   ├── configs/                     # MinIO configurations
 │   └── docs/                        # MinIO documentation
 ├── pkgs/                            # ✅ Package recipes
-│   ├── meso-forge-tooling/
+│   ├── meso-forge/
 │   └── minio-s3-tools/
 └── docs/                            # ✅ Project documentation
 ```
@@ -235,7 +236,7 @@ meso-forge-tools/
 |===
 |Metric |Before |After
 
-|meso-forge-tooling size
+|meso-forge size
 |~180KB (estimated)
 |149.1 KB
 
@@ -267,7 +268,7 @@ meso-forge-tools/
 
 === Cross-Package Integration
 
-* ✅ meso-forge-tooling can leverage MinIO for package storage
+* ✅ meso-forge can leverage MinIO for package storage
 * ✅ Both packages can be installed independently
 * ✅ Shared files (LICENSE, README) properly referenced
 * ✅ No circular dependencies
@@ -280,7 +281,7 @@ meso-forge-tools/
 |===
 |Package |Build Time
 
-|meso-forge-tooling
+|meso-forge
 |~2 seconds (including tests)
 
 |minio-s3-tools
@@ -361,4 +362,4 @@ The file reorganization and package separation has been **completely successful*
 
 **Status: ✅ READY FOR PRODUCTION**
 
-Both `meso-forge-tooling` and `minio-s3-tools` packages are ready for distribution and production use.
+Both `meso-forge` and `minio-s3-tools` packages are ready for distribution and production use.
