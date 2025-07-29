@@ -2,7 +2,7 @@
 schema_version: 1
 
 context:
-  version: "0.3.3"
+  version: "0.3.5"
 
 package:
   name: meso-forge
@@ -39,97 +39,18 @@ build:
       cp "common/README.adoc" ($env.PREFIX | path join "share" "meso-forge" "README.adoc")
       cp "common/LICENSE.txt" ($env.PREFIX | path join "share" "meso-forge" "LICENSE.txt")
 
-      # Create wrapper scripts for meso-forge command
-      mkdir ($env.PREFIX | path join "bin")
-
       # Create individual trampoline scripts for each meso-forge command
+      mkdir ($env.PREFIX | path join "bin")
+      let trampolines_dir = "pkgs/meso-forge/trampolines"
+      # Get all trampoline files and process them
+      ls $trampolines_dir | each { |file|
+        let filename = ($file.name | path basename)
+        let command_name = ($filename | str replace ".nu" "")
 
-      # Build commands
-      let build_all_script = [
-        "#!/usr/bin/env nu"
-        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/build_all.nu\")"
-      ] | str join "\n"
-      $build_all_script | save ($env.PREFIX | path join "bin" "meso-forge-build-all")
-      chmod +x ($env.PREFIX | path join "bin" "meso-forge-build-all")
-
-      let build_noarch_script = [
-        "#!/usr/bin/env nu"
-        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/build_noarch.nu\")"
-      ] | str join "\n"
-      $build_noarch_script | save ($env.PREFIX | path join "bin" "meso-forge-build-noarch")
-      chmod +x ($env.PREFIX | path join "bin" "meso-forge-build-noarch")
-
-      let build_platform_script = [
-        "#!/usr/bin/env nu"
-        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/build_platform.nu\")"
-      ] | str join "\n"
-      $build_platform_script | save ($env.PREFIX | path join "bin" "meso-forge-build-platform")
-      chmod +x ($env.PREFIX | path join "bin" "meso-forge-build-platform")
-
-      let build_single_script = [
-        "#!/usr/bin/env nu"
-        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/build_single.nu\")"
-      ] | str join "\n"
-      $build_single_script | save ($env.PREFIX | path join "bin" "meso-forge-build-single")
-      chmod +x ($env.PREFIX | path join "bin" "meso-forge-build-single")
-
-      # Publishing commands
-      cp pkgs/meso-forge/scripts/meso-forge-publish-local.nu ($env.PREFIX | path join "bin" "meso-forge-publish")
-      chmod +x ($env.PREFIX | path join "bin" "meso-forge-publish")
-
-      # Testing commands
-      let test_packages_script = [
-        "#!/usr/bin/env nu"
-        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/test_packages.nu\")"
-      ] | str join "\n"
-      $test_packages_script | save ($env.PREFIX | path join "bin" "meso-forge-test-packages")
-      chmod +x ($env.PREFIX | path join "bin" "meso-forge-test-packages")
-
-      # Package management commands
-      let check_package_script = [
-        "#!/usr/bin/env nu"
-        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/check_package_exists.nu\")"
-      ] | str join "\n"
-      $check_package_script | save ($env.PREFIX | path join "bin" "meso-forge-check-package")
-      chmod +x ($env.PREFIX | path join "bin" "meso-forge-check-package")
-
-      let retract_script = [
-        "#!/usr/bin/env nu"
-        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/package_retract.nu\")"
-      ] | str join "\n"
-      $retract_script | save ($env.PREFIX | path join "bin" "meso-forge-retract")
-      chmod +x ($env.PREFIX | path join "bin" "meso-forge-retract")
-
-      # Quality assurance commands
-      let lint_recipes_script = [
-        "#!/usr/bin/env nu"
-        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/lint_recipes.nu\")"
-      ] | str join "\n"
-      $lint_recipes_script | save ($env.PREFIX | path join "bin" "meso-forge-lint-recipes")
-      chmod +x ($env.PREFIX | path join "bin" "meso-forge-lint-recipes")
-
-      # Version update commands
-      let update_versions_script = [
-        "#!/usr/bin/env nu"
-        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/update_versions.nu\")"
-      ] | str join "\n"
-      $update_versions_script | save ($env.PREFIX | path join "bin" "meso-forge-update-versions")
-      chmod +x ($env.PREFIX | path join "bin" "meso-forge-update-versions")
-
-      # Pixi task management commands
-      let pixi_analyze_script = [
-        "#!/usr/bin/env nu"
-        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/pixi_tasks_manage.nu\") analyze"
-      ] | str join "\n"
-      $pixi_analyze_script | save ($env.PREFIX | path join "bin" "meso-forge-pixi-analyze")
-      chmod +x ($env.PREFIX | path join "bin" "meso-forge-pixi-analyze")
-
-      let pixi_update_script = [
-        "#!/usr/bin/env nu"
-        "nu (\$env.CONDA_PREFIX + \"/share/meso-forge/scripts/pixi_tasks_manage.nu\") update"
-      ] | str join "\n"
-      $pixi_update_script | save ($env.PREFIX | path join "bin" "meso-forge-pixi-update")
-      chmod +x ($env.PREFIX | path join "bin" "meso-forge-pixi-update")
+        let dest_path = ($env.PREFIX | path join "bin" $command_name)
+        cp $file.name $dest_path
+        chmod +x $dest_path
+      }
 
       # Create pixi-tasks wrapper script (nu version)
       cp "meso-forge/scripts/pixi_tasks_manage.nu" ($env.PREFIX | path join "bin" "pixi-tasks.nu")

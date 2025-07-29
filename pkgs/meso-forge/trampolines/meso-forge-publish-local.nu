@@ -27,5 +27,5 @@ def main [...script_args: string] {
   let all_args = ($local_args | append $processed_args)
 
   # Execute the publish script with local MinIO settings
-  exec nu ($env.CONDA_PREFIX)/share/meso-forge-tooling/scripts/package_publish.nu ...$all_args
+  exec nu ($env.CONDA_PREFIX)/share/meso-forge/scripts/package_publish.nu ...$all_args
 }
