@@ -40,12 +40,12 @@ jobs:
     name: Publish ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 2
 
       - name: Get latest successful run_id of 'build-packages.yml' on 'build' branch
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         id: get_run_id # Give it an ID to access its outputs
         with:
           result-encoding: json # To correctly handle output
@@ -103,7 +103,7 @@ jobs:
           echo "Disk space after cleanup:"
           df -h
 
-      - uses: prefix-dev/setup-pixi@v0.8.10
+      - uses: prefix-dev/setup-pixi@v0.9.0
         with:
           pixi-version: v0.47.0
           cache: true
@@ -115,7 +115,7 @@ jobs:
 
       - name: Download build artifacts
         if: ${{ steps.get_run_id.outputs.run_id != '' }}
-        uses: actions/download-artifact@v4 # Use v4 or a later version
+        uses: actions/download-artifact@v5 # Use v4 or a later version
         with:
           name: packages-${{ matrix.target }}
           path: output/
